@@ -1,0 +1,156 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-canvas: #141414;
+  --color-surface-1: #1f1f1f;
+  --color-surface-2: #2d2d2d;
+  --color-border: #333333;
+  --color-primary: #e50914;
+  --color-primary-hover: #f40612;
+  --color-ink: #ffffff;
+  --color-ink-muted: #a3a3a3;
+  --color-success: #46d369;
+  --color-warning: #f5c518;
+  --color-info: #4ea1ff;
+  --color-error: #ff6b6b;
+  --font-sans: 'Helvetica Neue', Arial, sans-serif;
+
+  --shadow-ring: 0 0 0 1px rgba(255, 255, 255, 0.06);
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4), 0 2px 6px rgba(0, 0, 0, 0.3);
+  --shadow-elevated:
+    0 0 0 1px rgba(255, 255, 255, 0.08), 0 4px 16px rgba(0, 0, 0, 0.5);
+
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-quart: cubic-bezier(0.5, 0, 0.75, 0);
+
+  --animate-modal-overlay: modal-overlay 200ms var(--ease-out-quart);
+  --animate-modal-content: modal-content 240ms var(--ease-out-expo);
+  --animate-shake: shake 360ms var(--ease-in-out);
+}
+
+@keyframes modal-overlay {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modal-content {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-4px);
+  }
+  40% {
+    transform: translateX(4px);
+  }
+  60% {
+    transform: translateX(-3px);
+  }
+  80% {
+    transform: translateX(3px);
+  }
+}
+
+@layer base {
+  :root {
+    scroll-behavior: smooth;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    color-scheme: dark;
+  }
+
+  html {
+    color-scheme: dark;
+  }
+
+  button,
+  label,
+  summary,
+  [role='button'] {
+    @apply cursor-pointer select-none;
+  }
+
+  input[type='checkbox'],
+  input[type='radio'] {
+    @apply appearance-auto;
+    accent-color: var(--color-primary);
+  }
+
+  input::-webkit-outer-spin-button,
+  input::-webkit-inner-spin-button {
+    @apply appearance-none;
+  }
+
+  input[type='number'] {
+    @apply appearance-none;
+    appearance: textfield;
+    -moz-appearance: textfield;
+  }
+
+  img,
+  video,
+  canvas,
+  svg {
+    @apply block h-auto max-w-full;
+  }
+
+  img {
+    @apply pointer-events-none select-none;
+  }
+
+  a {
+    @apply no-underline;
+  }
+
+  textarea {
+    @apply resize-none;
+  }
+}
+
+@layer utilities {
+  .img-outline {
+    outline: 1px solid rgba(255, 255, 255, 0.1);
+    outline-offset: -1px;
+  }
+
+  .focus-ring {
+    @apply focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-white;
+  }
+
+  .press {
+    @apply transition-transform duration-150 ease-out active:not-disabled:scale-[0.96];
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  html {
+    scroll-behavior: auto;
+  }
+}

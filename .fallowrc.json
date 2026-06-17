@@ -1,0 +1,16 @@
+{
+  "entry": [
+    "src/index.tsx"
+  ],
+  "health": {
+    "maxCyclomatic": 30,
+    "maxCognitive": 25,
+    "maxCrap": 1000
+  },
+  "ignoreDependencies": [
+    "babel-plugin-react-compiler"
+  ],
+  "ignorePatterns": [
+    "supabase-docs/**"
+  ]
+}

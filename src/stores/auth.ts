@@ -1,0 +1,195 @@
+import { create } from 'zustand';
+import { supabase } from '@/lib/supabase';
+import type { User, Session, Subscription } from '@supabase/supabase-js';
+import type { AccountType } from '@/types/auth';
+import type { AdminRole } from '@/types/admin';
+
+interface AuthState {
+  user: User | null;
+  session: Session | null;
+  isLoading: boolean;
+  accountType: AccountType;
+  adminRole: AdminRole | null;
+  initialize: () => Promise<() => void>;
+  sendOtp: (email: string) => Promise<{ error: string | null }>;
+  verifyOtp: (
+    email: string,
+    token: string,
+  ) => Promise<{ error: string | null }>;
+  refreshAccount: () => Promise<{
+    accountType: AccountType;
+    adminRole: AdminRole | null;
+  }>;
+  logout: () => Promise<void>;
+}
+
+const resolveAccount = async (
+  userId: string,
+  email: string,
+): Promise<{
+  accountType: AccountType;
+  adminRole: AdminRole | null;
+}> => {
+  const { data: admin, error: adminErr } = await supabase
+    .from('admin_users')
+    .select('role')
+    .eq('id', userId)
+    .eq('is_active', true)
+    .maybeSingle();
+
+  if (adminErr && adminErr.code !== 'PGRST116') {
+    console.warn('err resolving admin account', adminErr.message);
+  }
+
+  if (admin) {
+    return {
+      accountType: 'admin',
+      adminRole: admin.role as AdminRole,
+    };
+  }
+
+  const { data: customer, error: userErr } = await supabase
+    .from('users')
+    .select('id')
+    .eq('id', userId)
+    .maybeSingle();
+
+  if (userErr && userErr.code !== 'PGRST116') {
+    console.warn('err resolving user account', userErr.message);
+  }
+
+  if (customer) {
+    return { accountType: 'user', adminRole: null };
+  }
+
+  if (userErr?.code === 'PGRST205') {
+    return { accountType: null, adminRole: null };
+  }
+
+  if (!userErr) {
+    const { error: insertErr } = await supabase
+      .from('users')
+      .insert({ id: userId, email });
+    if (!insertErr) {
+      return { accountType: 'user', adminRole: null };
+    }
+    console.warn('err inserting new user row', insertErr.message);
+  }
+
+  return { accountType: null, adminRole: null };
+};
+
+const resolveForUser = async (
+  user: User | null,
+): Promise<{
+  accountType: AccountType;
+  adminRole: AdminRole | null;
+}> => {
+  if (!user || !user.email) {
+    return { accountType: null, adminRole: null };
+  }
+  return resolveAccount(user.id, user.email);
+};
+
+const useAuth = create<AuthState>((set) => {
+  const applyResolvedAccount = (
+    session: Session | null,
+    user: User | null,
+    resolved: {
+      accountType: AccountType;
+      adminRole: AdminRole | null;
+    },
+  ) => {
+    set({
+      session,
+      user,
+      accountType: resolved.accountType,
+      adminRole: resolved.adminRole,
+    });
+  };
+
+  let activeSubscription: Subscription | null = null;
+
+  return {
+    user: null,
+    session: null,
+    isLoading: true,
+    accountType: null,
+    adminRole: null,
+
+    initialize: async () => {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const user = sessionData.session?.user ?? null;
+      const resolved = await resolveForUser(user);
+
+      set({
+        session: sessionData.session,
+        user,
+        accountType: resolved.accountType,
+        adminRole: resolved.adminRole,
+        isLoading: false,
+      });
+
+      activeSubscription?.unsubscribe();
+      const { data } = supabase.auth.onAuthStateChange(
+        async (_event, session) => {
+          const nextUser = session?.user ?? null;
+          const nextResolved = await resolveForUser(nextUser);
+          applyResolvedAccount(session, nextUser, nextResolved);
+        },
+      );
+      const mySubscription = data.subscription;
+      activeSubscription = mySubscription;
+
+      return () => {
+        if (activeSubscription === mySubscription) {
+          mySubscription.unsubscribe();
+          activeSubscription = null;
+        }
+      };
+    },
+
+    sendOtp: async (email: string) => {
+      const { error } = await supabase.auth.signInWithOtp({ email });
+      return { error: error?.message ?? null };
+    },
+
+    verifyOtp: async (email: string, token: string) => {
+      const { data, error } = await supabase.auth.verifyOtp({
+        email,
+        token,
+        type: 'email',
+      });
+      if (error) return { error: error.message };
+
+      const user = data.session?.user ?? null;
+      const resolved = await resolveForUser(user);
+      applyResolvedAccount(data.session, user, resolved);
+      return { error: null };
+    },
+
+    refreshAccount: async () => {
+      const { data } = await supabase.auth.getSession();
+      const user = data.session?.user ?? null;
+      if (!user || !user.email) {
+        applyResolvedAccount(data.session, null, {
+          accountType: null,
+          adminRole: null,
+        });
+        return { accountType: null, adminRole: null };
+      }
+      const resolved = await resolveAccount(user.id, user.email);
+      applyResolvedAccount(data.session, user, resolved);
+      return resolved;
+    },
+
+    logout: async () => {
+      activeSubscription?.unsubscribe();
+      activeSubscription = null;
+      await supabase.auth.signOut();
+      set({ user: null, session: null, accountType: null, adminRole: null });
+    },
+  };
+});
+
+export { useAuth };

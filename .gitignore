@@ -1,0 +1,24 @@
+# Local
+.DS_Store
+*.local
+*.log*
+
+# Dist
+node_modules
+dist/
+
+# Profile
+.rspack-profile-*/
+
+# IDE
+.vscode/*
+!.vscode/extensions.json
+.idea
+.agents
+opencode
+supabase-docs
+AGENTS.MD
+DESIGN.MD
+opencode.json
+PRODUCT.md
+skill-lock.json
