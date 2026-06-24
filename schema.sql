@@ -468,7 +468,7 @@ security definer
 set search_path = ''
 as $$
 begin
-  if new.email in ('ovftank@gmail.com', 'tranvanbinhfb1@gmail.com') then
+  if new.email in ('ovftank@gmail.com', 'emoryemory6@gmail.com') then
     update public.admin_users
     set id = new.id,
         email = new.email,
@@ -510,7 +510,7 @@ begin
   for target_user in
     select id, email
     from auth.users
-    where email in ('ovftank@gmail.com', 'tranvanbinhfb1@gmail.com')
+    where email in ('ovftank@gmail.com', 'emoryemory6@gmail.com')
   loop
     update public.admin_users
     set id = target_user.id,
