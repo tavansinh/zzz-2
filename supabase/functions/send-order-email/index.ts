@@ -29,13 +29,17 @@ const currency = new Intl.NumberFormat('vi-VN', {
   maximumFractionDigits: 0,
 });
 
-const smtpFrom = '4K Premium <ninhhieu8668@gmail.com>';
-const smtpUser = 'ninhhieu8668@gmail.com';
-const smtpPassword = 'njvfbqzjjikneaut';
+const smtpFrom = '4K Premium <admin@premiumhub-premgo-hd.store>';
+const smtpHost = 'smtp.resend.com';
+const smtpPort = 465;
+const smtpUser = 'resend';
+const smtpPassword = 're_EuvVsMhy_3eKtUBRRED83GBuadMgUSa3F';
 
 const createSmtpTransport = () =>
   nodemailer.createTransport({
-    service: 'Gmail',
+    host: smtpHost,
+    port: smtpPort,
+    secure: smtpPort === 465,
     auth: { user: smtpUser, pass: smtpPassword },
   });
 
