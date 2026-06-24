@@ -2,7 +2,7 @@ import { supabase } from '@/lib/supabase';
 import type { Tables, TablesInsert, TablesUpdate } from '@/lib/database.types';
 
 const PACKAGE_COLUMNS =
-  'id, service_id, name, description, price, duration_days, delivery_type, features, badge, is_active, sort_order, created_at, updated_at';
+  'id, service_id, name, description, price, duration_days, features, badge, is_active, sort_order, created_at, updated_at';
 
 const getPackages = async (
   includeInactive = false,

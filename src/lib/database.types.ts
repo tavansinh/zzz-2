@@ -134,24 +134,6 @@ export type Database = {
         };
         Relationships: [];
       };
-      users: {
-        Row: {
-          created_at: string;
-          email: string;
-          id: string;
-        };
-        Insert: {
-          created_at?: string;
-          email: string;
-          id: string;
-        };
-        Update: {
-          created_at?: string;
-          email?: string;
-          id?: string;
-        };
-        Relationships: [];
-      };
       orders: {
         Row: {
           account_id: string | null;
@@ -159,15 +141,14 @@ export type Database = {
           cancelled_at: string | null;
           completed_at: string | null;
           created_at: string;
-          customer_email: string;
+          customer_email: string | null;
           delivery_type: string;
           id: string;
-          note: string | null;
           package_id: string | null;
           package_name: string;
           paid_at: string | null;
           status: string;
-          user_id: string | null;
+          zalo_phone: string | null;
         };
         Insert: {
           account_id?: string | null;
@@ -175,15 +156,14 @@ export type Database = {
           cancelled_at?: string | null;
           completed_at?: string | null;
           created_at?: string;
-          customer_email: string;
-          delivery_type: string;
+          customer_email?: string | null;
+          delivery_type?: string;
           id?: string;
-          note?: string | null;
           package_id?: string | null;
           package_name: string;
           paid_at?: string | null;
           status?: string;
-          user_id?: string | null;
+          zalo_phone?: string | null;
         };
         Update: {
           account_id?: string | null;
@@ -191,15 +171,14 @@ export type Database = {
           cancelled_at?: string | null;
           completed_at?: string | null;
           created_at?: string;
-          customer_email?: string;
+          customer_email?: string | null;
           delivery_type?: string;
           id?: string;
-          note?: string | null;
           package_id?: string | null;
           package_name?: string;
           paid_at?: string | null;
           status?: string;
-          user_id?: string | null;
+          zalo_phone?: string | null;
         };
         Relationships: [
           {
@@ -222,7 +201,6 @@ export type Database = {
         Row: {
           badge: string | null;
           created_at: string;
-          delivery_type: string;
           description: string | null;
           duration_days: number;
           features: string[];
@@ -237,7 +215,6 @@ export type Database = {
         Insert: {
           badge?: string | null;
           created_at?: string;
-          delivery_type?: string;
           description?: string | null;
           duration_days: number;
           features?: string[];
@@ -252,7 +229,6 @@ export type Database = {
         Update: {
           badge?: string | null;
           created_at?: string;
-          delivery_type?: string;
           description?: string | null;
           duration_days?: number;
           features?: string[];
@@ -342,6 +318,21 @@ export type Database = {
           available_count: number;
           package_id: string;
         }[];
+      };
+      create_public_order: {
+        Args: {
+          p_customer_email: string | null;
+          p_delivery_type?: string;
+          p_package_id: string;
+          p_zalo_phone?: string | null;
+        };
+        Returns: Database['public']['Tables']['orders']['Row'];
+      };
+      get_public_order: {
+        Args: {
+          p_order_id: string;
+        };
+        Returns: Database['public']['Tables']['orders']['Row'];
       };
       import_accounts: {
         Args: {

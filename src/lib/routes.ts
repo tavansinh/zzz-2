@@ -1,6 +1,5 @@
 const routes = {
   home: '/',
-  orderHistory: '/lich-su-mua-hang',
   orderSuccess: '/dat-mua-thanh-cong',
   orderDetail: (id: string) => `/don-hang/${id}`,
   login: '/dang-nhap',

@@ -1,17 +1,8 @@
 import { type FC, useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router';
-import {
-  ClockCounterClockwiseIcon,
-  ShieldIcon,
-  SignInIcon,
-  SignOutIcon,
-  UserCircleIcon,
-} from '@phosphor-icons/react';
+import { ShieldIcon, SignOutIcon, UserCircleIcon } from '@phosphor-icons/react';
 import { useAuth } from '@/stores/auth';
 import { routes } from '@/lib/routes';
-
-const linkBtn =
-  'inline-flex min-h-11 items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white transition-[transform,background-color] duration-200 hover:bg-primary-hover motion-safe:active:scale-[0.96] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-white';
 
 const Header: FC = () => {
   const navigate = useNavigate();
@@ -46,76 +37,51 @@ const Header: FC = () => {
           4K PREMIUM
         </a>
 
-        {!isLoading &&
-          user &&
-          (accountType === 'user' || accountType === 'admin') && (
-            <div className="relative" ref={menuRef}>
-              <button
-                type="button"
-                onClick={() => setMenuOpen((o) => !o)}
-                className="border-border/50 bg-surface-1 hover:bg-white/5 inline-flex min-h-11 items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium text-ink transition-colors duration-200 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-white"
-              >
-                <UserCircleIcon size={18} weight="fill" />
-                <span className="hidden max-w-45 truncate md:inline">
+        {!isLoading && user && accountType === 'admin' && (
+          <div className="relative" ref={menuRef}>
+            <button
+              type="button"
+              onClick={() => setMenuOpen((o) => !o)}
+              className="border-border/50 bg-surface-1 hover:bg-white/5 inline-flex min-h-11 items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium text-ink transition-colors duration-200 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-white"
+            >
+              <UserCircleIcon size={18} weight="fill" />
+              <span className="hidden max-w-45 truncate md:inline">
+                {user.email}
+              </span>
+            </button>
+
+            {menuOpen && (
+              <div className="border-border/50 bg-surface-1 absolute right-0 z-50 mt-2 w-64 rounded-md border p-2 shadow-[0_4px_16px_rgba(0,0,0,0.5),0_0_0_1px_rgba(255,255,255,0.04)]">
+                <div className="border-border/50 mb-1 truncate border-b px-3 py-2 text-xs text-ink-muted">
                   {user.email}
-                </span>
-              </button>
-
-              {menuOpen && (
-                <div className="border-border/50 bg-surface-1 absolute right-0 z-50 mt-2 w-64 rounded-md border p-2 shadow-[0_4px_16px_rgba(0,0,0,0.5),0_0_0_1px_rgba(255,255,255,0.04)]">
-                  <div className="border-border/50 mb-1 truncate border-b px-3 py-2 text-xs text-ink-muted">
-                    {user.email}
-                  </div>
-
-                  {accountType === 'user' && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setMenuOpen(false);
-                        navigate(routes.orderHistory);
-                      }}
-                      className="text-ink hover:bg-white/5 flex min-h-10 w-full items-center gap-2 rounded px-3 py-2 text-sm transition-colors duration-150 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-white"
-                    >
-                      <ClockCounterClockwiseIcon size={16} />
-                      Lịch sử mua hàng
-                    </button>
-                  )}
-
-                  {accountType === 'admin' && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setMenuOpen(false);
-                        navigate(routes.admin);
-                      }}
-                      className="text-ink hover:bg-white/5 flex min-h-10 w-full items-center gap-2 rounded px-3 py-2 text-sm transition-colors duration-150 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-white"
-                    >
-                      <ShieldIcon size={16} />
-                      Vào trang quản trị
-                      <span className="text-ink-muted ml-auto text-xs">
-                        {adminRole === 'admin' ? 'Admin' : 'Staff'}
-                      </span>
-                    </button>
-                  )}
-
-                  <button
-                    type="button"
-                    onClick={handleLogout}
-                    className="text-ink hover:bg-white/5 flex min-h-10 w-full items-center gap-2 rounded px-3 py-2 text-sm transition-colors duration-150 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-white"
-                  >
-                    <SignOutIcon size={16} />
-                    Đăng xuất
-                  </button>
                 </div>
-              )}
-            </div>
-          )}
 
-        {!isLoading && !user && (
-          <a href={routes.login} className={linkBtn}>
-            <SignInIcon size={16} weight="fill" />
-            Đăng nhập
-          </a>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    navigate(routes.admin);
+                  }}
+                  className="text-ink hover:bg-white/5 flex min-h-10 w-full items-center gap-2 rounded px-3 py-2 text-sm transition-colors duration-150 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-white"
+                >
+                  <ShieldIcon size={16} />
+                  Vào trang quản trị
+                  <span className="text-ink-muted ml-auto text-xs">
+                    {adminRole === 'admin' ? 'Admin' : 'Staff'}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="text-ink hover:bg-white/5 flex min-h-10 w-full items-center gap-2 rounded px-3 py-2 text-sm transition-colors duration-150 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-white"
+                >
+                  <SignOutIcon size={16} />
+                  Đăng xuất
+                </button>
+              </div>
+            )}
+          </div>
         )}
       </div>
     </nav>

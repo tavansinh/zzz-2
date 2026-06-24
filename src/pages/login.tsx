@@ -30,10 +30,10 @@ const EmailForm = ({
   return (
     <>
       <h2 className="text-ink mb-2 text-xl font-semibold tracking-tight text-balance">
-        Đăng nhập / Đăng ký
+        Đăng nhập quản trị
       </h2>
       <p className="text-ink-muted mb-8 text-sm leading-relaxed text-pretty">
-        Nhập email để đăng nhập hoặc tạo tài khoản mới
+        Chỉ admin hoặc sub admin đã được cấp quyền mới có thể đăng nhập.
       </p>
 
       <Field.Root className="mb-5">
@@ -46,10 +46,12 @@ const EmailForm = ({
           <Input
             id="email"
             type="email"
+            name="admin_email"
             value={email}
             onValueChange={onChange}
-            placeholder="Nhập email để đăng nhập"
+            placeholder="nhập email của bạn"
             autoComplete="email"
+            spellCheck={false}
             className="pl-10"
             onKeyDown={(e: React.KeyboardEvent) =>
               e.key === 'Enter' && onSendOtp()
@@ -69,17 +71,17 @@ const EmailForm = ({
         ) : (
           <PaperPlaneRightIcon size={18} weight="bold" />
         )}
-        {isLoading ? 'Đang gửi…' : 'Gửi mã xác thực'}
+        {isLoading ? 'Đang gửi…' : 'Gửi mã quản trị'}
       </Button>
     </>
   );
 };
 
-const Login: FC = () => {
+const Login: FC<{ redirectTo?: string }> = ({ redirectTo }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const state = (location.state as LocationState | null) ?? null;
-  const redirectAfterLogin = state?.from ?? null;
+  const redirectAfterLogin = redirectTo ?? state?.from ?? null;
 
   const {
     isLoading: isAuthLoading,
@@ -87,6 +89,7 @@ const Login: FC = () => {
     sendOtp,
     verifyOtp,
     refreshAccount,
+    logout,
   } = useAuth();
   const [step, setStep] = useState<Step>('email');
   const [email, setEmail] = useState('');
@@ -95,7 +98,7 @@ const Login: FC = () => {
 
   useEffect(() => {
     if (isAuthLoading) return;
-    if (accountType === 'user' || accountType === 'admin') {
+    if (accountType === 'admin') {
       const dest =
         redirectAfterLogin && redirectAfterLogin !== routes.login
           ? redirectAfterLogin
@@ -126,16 +129,17 @@ const Login: FC = () => {
 
   const handleOtpSuccess = useCallback(async () => {
     const resolved = await refreshAccount();
-    if (resolved.accountType === 'user' || resolved.accountType === 'admin') {
+    if (resolved.accountType === 'admin') {
       const dest =
         redirectAfterLogin && redirectAfterLogin !== routes.login
           ? redirectAfterLogin
           : routes.home;
       navigate(dest, { replace: true });
     } else {
-      setError('Không thể xác thực tài khoản. Vui lòng thử lại.');
+      await logout();
+      setError('Email này không có quyền quản trị.');
     }
-  }, [redirectAfterLogin, navigate, refreshAccount]);
+  }, [redirectAfterLogin, navigate, refreshAccount, logout]);
 
   if (isAuthLoading) {
     return (
@@ -169,12 +173,18 @@ const Login: FC = () => {
             </div>
 
             {step === 'email' ? (
-              <EmailForm
-                email={email}
-                onChange={setEmail}
-                isLoading={isLoading}
-                onSendOtp={handleSendOtp}
-              />
+              <>
+                <EmailForm
+                  email={email}
+                  onChange={setEmail}
+                  isLoading={isLoading}
+                  onSendOtp={handleSendOtp}
+                />
+
+                <p className="text-ink-muted mt-4 text-center text-xs text-pretty">
+                  Mã đăng nhập sẽ được gửi tới email quản trị đã cấp quyền.
+                </p>
+              </>
             ) : (
               <OtpForm
                 email={email}

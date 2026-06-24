@@ -1,15 +1,15 @@
 import type { AdminRole } from '@/types/admin';
 import type { OrderStatus, AccountStatus } from '@/types/orders';
 
-export type DeliveryType = 'auto' | 'zalo';
+export type DeliveryType = 'mail' | 'zalo';
 
 const deliveryLabel: Record<DeliveryType, string> = {
-  auto: 'Tự động qua email',
+  mail: 'Giao qua mail',
   zalo: 'Giao qua Zalo',
 };
 
 const deliveryShortLabel: Record<DeliveryType, string> = {
-  auto: 'Tự động',
+  mail: 'Mail',
   zalo: 'Giao qua Zalo',
 };
 

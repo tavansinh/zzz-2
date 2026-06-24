@@ -18,8 +18,6 @@ import useServicesAdmin from '@/hooks/useServicesAdmin';
 import { useNameById } from '@/hooks/useNameById';
 import type { Tables, TablesInsert } from '@/lib/database.types';
 import { formatVnd } from '@/lib/format';
-import type { DeliveryType } from '@/lib/labels';
-import { deliveryShortLabel } from '@/lib/labels';
 import { reportError } from '@/lib/report-error';
 import { useAuth } from '@/stores/auth';
 import { useToast } from '@/stores/toast';
@@ -44,7 +42,6 @@ interface PackageFormData {
   description: string;
   price: string;
   duration_days: string;
-  delivery_type: DeliveryType;
   features: string;
   badge: string;
   sort_order: string;
@@ -57,7 +54,6 @@ const emptyForm: PackageFormData = {
   description: '',
   price: '',
   duration_days: '',
-  delivery_type: 'auto',
   features: '',
   badge: '',
   sort_order: '0',
@@ -69,7 +65,6 @@ const PACKAGE_HEADERS = [
   'Tên gói',
   'Giá',
   'Thời hạn',
-  'Giao hàng',
   'Trạng thái',
   'Thao tác',
 ];
@@ -80,7 +75,6 @@ const toFormData = (pkg: Tables<'packages'>): PackageFormData => ({
   description: pkg.description ?? '',
   price: pkg.price.toString(),
   duration_days: pkg.duration_days.toString(),
-  delivery_type: pkg.delivery_type as DeliveryType,
   features: pkg.features.join('\n'),
   badge: pkg.badge ?? '',
   sort_order: pkg.sort_order.toString(),
@@ -154,17 +148,6 @@ const PackageFormFields: FC<{
           />
         </Field.Root>
       </div>
-
-      <Select
-        label="Loại giao hàng"
-        value={values.delivery_type}
-        onChange={(v) => update('delivery_type', v as DeliveryType)}
-        options={[
-          { value: 'auto', label: deliveryShortLabel.auto },
-          { value: 'zalo', label: deliveryShortLabel.zalo },
-        ]}
-        disabled={!canEdit}
-      />
 
       <Field.Root>
         <Field.Label>Tính năng</Field.Label>
@@ -418,7 +401,6 @@ const AdminPackages: FC = () => {
       description: formValues.description || null,
       price,
       duration_days: durationDays,
-      delivery_type: formValues.delivery_type,
       features,
       badge: formValues.badge.trim() || null,
       is_active: formValues.is_active,
@@ -642,10 +624,6 @@ const AdminPackages: FC = () => {
             </td>
             <td className="px-4 py-3 tabular-nums">{formatVnd(pkg.price)}</td>
             <td className="px-4 py-3 tabular-nums">{pkg.duration_days} ngày</td>
-            <td className="px-4 py-3">
-              {deliveryShortLabel[pkg.delivery_type as DeliveryType] ??
-                pkg.delivery_type}
-            </td>
             <td className="px-4 py-3">
               <button
                 type="button"

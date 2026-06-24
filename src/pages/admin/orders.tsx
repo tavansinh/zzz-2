@@ -75,24 +75,22 @@ const OrderRow: FC<{
   const status = order.status as OrderStatus;
   const delivery = order.delivery_type as DeliveryType;
   const isZalo = delivery === 'zalo';
-  const noteClass = isZalo ? 'text-primary' : 'text-ink-muted';
 
   return (
     <tr className="text-ink hover:bg-white/3 transition-colors duration-150">
       <td className="px-4 py-3 align-top">
         <div className="font-medium text-pretty">{order.customer_email}</div>
-        {order.note && (
-          <div className={`mt-0.5 flex items-start gap-1 text-xs ${noteClass}`}>
-            {isZalo && (
-              <ChatsCircleIcon
-                size={12}
-                weight="fill"
-                className="mt-0.5 shrink-0"
-              />
-            )}
+        {isZalo && order.zalo_phone && (
+          <div className="text-primary mt-0.5 flex items-start gap-1 text-xs">
+            <ChatsCircleIcon
+              size={12}
+              weight="fill"
+              aria-hidden="true"
+              className="mt-0.5 shrink-0"
+            />
             <span className="min-w-0 break-all text-pretty">
-              {isZalo && <span className="font-semibold">Zalo: </span>}
-              {order.note}
+              <span className="font-semibold">Zalo: </span>
+              {order.zalo_phone}
             </span>
           </div>
         )}
@@ -358,7 +356,10 @@ const AdminOrders: FC = () => {
         {viewOrder && (
           <div className="space-y-3 text-sm">
             <Row label="Mã đơn" value={viewOrder.id} mono />
-            <Row label="Khách hàng" value={viewOrder.customer_email} />
+            <Row
+              label="Khách hàng"
+              value={viewOrder.customer_email ?? 'Không có'}
+            />
             <Row label="Gói" value={viewOrder.package_name} />
             <Row label="Số tiền" value={formatVnd(viewOrder.amount)} />
             <Row
@@ -396,13 +397,8 @@ const AdminOrders: FC = () => {
                 value={formatDateFull(viewOrder.cancelled_at)}
               />
             )}
-            {viewOrder.note && (
-              <Row
-                label={
-                  viewOrder.delivery_type === 'zalo' ? 'Số Zalo' : 'Ghi chú'
-                }
-                value={viewOrder.note}
-              />
+            {viewOrder.zalo_phone && (
+              <Row label="Số Zalo" value={viewOrder.zalo_phone} />
             )}
 
             {viewAccount ? (
@@ -425,7 +421,7 @@ const AdminOrders: FC = () => {
             <div className="flex items-center justify-between pt-2">
               <div className="flex flex-wrap gap-2">
                 {viewOrder.status === 'awaiting_stock' &&
-                  viewOrder.delivery_type === 'auto' && (
+                  viewOrder.delivery_type === 'mail' && (
                     <Button
                       size="sm"
                       variant="outline"
@@ -437,7 +433,7 @@ const AdminOrders: FC = () => {
                     </Button>
                   )}
                 {viewOrder.status === 'completed' &&
-                  viewOrder.delivery_type === 'auto' &&
+                  viewOrder.delivery_type === 'mail' &&
                   viewAccount && (
                     <Button
                       size="sm"

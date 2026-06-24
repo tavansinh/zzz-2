@@ -25,7 +25,6 @@ interface AuthState {
 
 const resolveAccount = async (
   userId: string,
-  email: string,
 ): Promise<{
   accountType: AccountType;
   adminRole: AdminRole | null;
@@ -48,34 +47,6 @@ const resolveAccount = async (
     };
   }
 
-  const { data: customer, error: userErr } = await supabase
-    .from('users')
-    .select('id')
-    .eq('id', userId)
-    .maybeSingle();
-
-  if (userErr && userErr.code !== 'PGRST116') {
-    console.warn('err resolving user account', userErr.message);
-  }
-
-  if (customer) {
-    return { accountType: 'user', adminRole: null };
-  }
-
-  if (userErr?.code === 'PGRST205') {
-    return { accountType: null, adminRole: null };
-  }
-
-  if (!userErr) {
-    const { error: insertErr } = await supabase
-      .from('users')
-      .insert({ id: userId, email });
-    if (!insertErr) {
-      return { accountType: 'user', adminRole: null };
-    }
-    console.warn('err inserting new user row', insertErr.message);
-  }
-
   return { accountType: null, adminRole: null };
 };
 
@@ -88,7 +59,7 @@ const resolveForUser = async (
   if (!user || !user.email) {
     return { accountType: null, adminRole: null };
   }
-  return resolveAccount(user.id, user.email);
+  return resolveAccount(user.id);
 };
 
 const useAuth = create<AuthState>((set) => {
@@ -178,7 +149,7 @@ const useAuth = create<AuthState>((set) => {
         });
         return { accountType: null, adminRole: null };
       }
-      const resolved = await resolveAccount(user.id, user.email);
+      const resolved = await resolveAccount(user.id);
       applyResolvedAccount(data.session, user, resolved);
       return resolved;
     },

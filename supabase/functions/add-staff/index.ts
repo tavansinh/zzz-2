@@ -130,11 +130,15 @@ Deno.serve(async (req) => {
       return reactivateStaff(admin, existingAdmin);
     }
 
-    const { data: existingUser } = await admin
-      .from('users')
-      .select('id')
-      .eq('email', email)
-      .maybeSingle();
+    const {
+      data: { users },
+      error: usersError,
+    } = await admin.auth.admin.listUsers();
+    if (usersError) throw usersError;
+
+    const existingUser = users.find(
+      (user) => user.email?.toLowerCase() === email,
+    );
 
     if (existingUser) {
       return linkExistingUserAsStaff(admin, existingUser.id, email, caller.id);

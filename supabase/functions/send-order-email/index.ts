@@ -12,7 +12,7 @@ type EmailKind = 'payment_received' | 'account_delivery' | 'manual_completed';
 
 type OrderRow = {
   id: string;
-  customer_email: string;
+  customer_email: string | null;
   package_name: string;
   amount: number;
   status: string;
@@ -96,6 +96,8 @@ const orderRows = (order: OrderRow, packageName: string, amount: string) => `
   ${infoRow('Số tiền', amount)}`;
 
 const buildMail = (order: OrderRow, kind: EmailKind) => {
+  if (!order.customer_email) throw new Error('missing customer email');
+
   const packageName = escapeHtml(order.package_name);
   const amount = currency.format(order.amount);
 
@@ -229,6 +231,7 @@ Deno.serve(async (req) => {
       .single<OrderRow>();
 
     if (orderError) throw orderError;
+    if (!order.customer_email) throw new Error('missing customer email');
 
     stage = 'smtp send';
     const transporter = createSmtpTransport();

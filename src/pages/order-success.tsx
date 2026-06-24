@@ -8,7 +8,6 @@ import {
 import ClientLayout from '@/components/layout/client-layout';
 import { Spinner } from '@/components/ui';
 import { useToast } from '@/stores/toast';
-import { useAuth } from '@/stores/auth';
 import { getSettings } from '@/lib/api-settings';
 import { getOrder } from '@/lib/api-orders';
 import { findBank, getBanks } from '@/lib/banks';
@@ -29,6 +28,7 @@ type OrderSummary = Omit<
     | 'customer_email'
     | 'status'
     | 'delivery_type'
+    | 'zalo_phone'
     | 'created_at'
     | 'paid_at'
     | 'completed_at'
@@ -45,7 +45,7 @@ interface OrderState {
   order?: Partial<OrderSummary> & {
     packageName: string;
     amount: number;
-    email: string;
+    email: string | null;
   };
 }
 
@@ -94,7 +94,8 @@ const fromState = (state: OrderState['order']): OrderSummary | null => {
     amount: state.amount,
     customer_email: state.email,
     status: normalizeStatus(state.status),
-    delivery_type: (state.delivery_type as DeliveryType) ?? 'auto',
+    delivery_type: (state.delivery_type as DeliveryType) ?? 'mail',
+    zalo_phone: state.zalo_phone ?? null,
     created_at: state.created_at ?? null,
     paid_at: state.paid_at ?? null,
     completed_at: state.completed_at ?? null,
@@ -176,14 +177,12 @@ const usePaymentSettings = () => {
 
 const useOrderPolling = (
   trackingId: string | null,
-  authLoading: boolean,
-  hasUser: boolean,
   isComplete: boolean,
   applyOrder: (next: OrderSummary) => void,
   reportError: (msg: string) => void,
 ) => {
   useEffect(() => {
-    if (!trackingId || authLoading || !hasUser || isComplete) return;
+    if (!trackingId || isComplete) return;
     let cancelled = false;
     const timer = window.setInterval(() => {
       getOrder(trackingId)
@@ -198,7 +197,7 @@ const useOrderPolling = (
       cancelled = true;
       window.clearInterval(timer);
     };
-  }, [applyOrder, authLoading, hasUser, isComplete, reportError, trackingId]);
+  }, [applyOrder, isComplete, reportError, trackingId]);
 };
 
 const InfoRow: FC<{
@@ -279,15 +278,20 @@ const OrderInfoCard: FC<{ order: OrderSummary }> = ({ order }) => (
       value={`${formatNumber(order.amount)} ₫`}
       copyable
     />
-    <InfoRow
-      label="Email nhận tài khoản"
-      value={order.customer_email}
-      copyable
-    />
+    {order.customer_email && (
+      <InfoRow
+        label="Email nhận tài khoản"
+        value={order.customer_email}
+        copyable
+      />
+    )}
     <InfoRow
       label="Hình thức"
       value={deliveryLabel[order.delivery_type] ?? order.delivery_type}
     />
+    {order.delivery_type === 'zalo' && order.zalo_phone && (
+      <InfoRow label="Số Zalo" value={order.zalo_phone} copyable />
+    )}
     <InfoRow label="Trạng thái" value={statusLabel[order.status]} />
     <InfoRow label="Thanh toán" value={paymentStatusLabel(order.status)} />
     {order.created_at && (
@@ -435,7 +439,6 @@ const OrderSuccess: FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { orderId } = useParams();
-  const { user, isLoading: authLoading } = useAuth();
   const state = location.state as OrderState | null;
   const trackingId = orderId ?? state?.order?.id ?? null;
   const hasInitialOrder = Boolean(state?.order);
@@ -454,20 +457,11 @@ const OrderSuccess: FC = () => {
   useEffect(() => {
     if (!trackingId && !hasInitialOrder) {
       navigate(routes.home, { replace: true });
-      return;
     }
-    if (!trackingId || authLoading) return;
-    if (!user) {
-      navigate(routes.login, {
-        state: { from: routes.orderDetail(trackingId) },
-      });
-    }
-  }, [authLoading, hasInitialOrder, navigate, trackingId, user]);
+  }, [hasInitialOrder, navigate, trackingId]);
 
   useOrderPolling(
     trackingId,
-    authLoading,
-    Boolean(user),
     order?.status === 'completed',
     setOrder,
     setError,
@@ -496,7 +490,7 @@ const OrderSuccess: FC = () => {
     }
   };
 
-  if (authLoading || orderLoading) {
+  if (orderLoading) {
     return (
       <ClientLayout>
         <div className="flex min-h-dvh items-center justify-center">

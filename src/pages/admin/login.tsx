@@ -1,27 +1,14 @@
-import { useEffect, type FC } from 'react';
-import { useNavigate } from 'react-router';
-import { Spinner } from '@/components/ui';
+import type { FC } from 'react';
 import { useAuth } from '@/stores/auth';
+import Login from '@/pages/login';
 import { routes } from '@/lib/routes';
+import { Navigate } from 'react-router';
 
 const AdminLogin: FC = () => {
-  const navigate = useNavigate();
   const { accountType, isLoading } = useAuth();
-
-  useEffect(() => {
-    if (isLoading) return;
-    if (accountType === 'admin') {
-      navigate(routes.admin, { replace: true });
-      return;
-    }
-    navigate(routes.login, { replace: true });
-  }, [accountType, isLoading, navigate]);
-
-  return (
-    <div className="flex min-h-dvh items-center justify-center bg-canvas">
-      <Spinner className="h-8 w-8 text-primary" />
-    </div>
-  );
+  if (!isLoading && accountType === 'admin')
+    return <Navigate to={routes.admin} replace />;
+  return <Login redirectTo={routes.admin} />;
 };
 
 export default AdminLogin;

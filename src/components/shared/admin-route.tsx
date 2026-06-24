@@ -3,6 +3,7 @@ import { Navigate, useLocation } from 'react-router';
 import { useAuth } from '@/stores/auth';
 import { Spinner } from '@/components/ui';
 import { routes } from '@/lib/routes';
+import Login from '@/pages/login';
 
 const AdminRoute: FC<{ children: ReactNode }> = ({ children }) => {
   const { user, accountType, isLoading } = useAuth();
@@ -17,9 +18,7 @@ const AdminRoute: FC<{ children: ReactNode }> = ({ children }) => {
   }
 
   if (!user) {
-    return (
-      <Navigate to={routes.login} state={{ from: location.pathname }} replace />
-    );
+    return <Login redirectTo={location.pathname} />;
   }
 
   if (accountType !== 'admin') {

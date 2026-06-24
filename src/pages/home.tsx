@@ -36,7 +36,7 @@ interface HeroServiceItem {
 
 interface DisplayPackage {
   raw: Tables<'packages'>;
-  outOfStock: boolean;
+  mailAvailable: boolean;
 }
 
 interface ServiceGroup {
@@ -158,9 +158,9 @@ const ServiceHeading: FC<{ service: Tables<'services'> }> = ({ service }) => (
 
 const PackageCard: FC<{
   pkg: Tables<'packages'>;
-  outOfStock: boolean;
+  mailAvailable: boolean;
   onBuy: () => void;
-}> = ({ pkg, outOfStock, onBuy }) => {
+}> = ({ pkg, mailAvailable, onBuy }) => {
   const highlighted = Boolean(pkg.badge);
 
   return (
@@ -191,21 +191,23 @@ const PackageCard: FC<{
       </div>
 
       <div className="mb-4 flex items-center gap-2 text-sm">
-        {outOfStock ? (
-          <ProhibitIcon
-            size={14}
-            weight="fill"
-            className="shrink-0 text-warning"
-          />
-        ) : (
+        {mailAvailable ? (
           <CircleWavyCheckIcon
             size={14}
             weight="fill"
+            aria-hidden="true"
             className="shrink-0 text-success"
           />
+        ) : (
+          <ProhibitIcon
+            size={14}
+            weight="fill"
+            aria-hidden="true"
+            className="shrink-0 text-warning"
+          />
         )}
-        <span className={outOfStock ? 'text-warning' : 'text-success'}>
-          {outOfStock ? 'Tạm hết hàng' : 'Sẵn hàng'}
+        <span className={mailAvailable ? 'text-success' : 'text-warning'}>
+          {mailAvailable ? 'Mail sẵn hàng' : 'Mail hết, chọn Zalo'}
         </span>
       </div>
 
@@ -216,13 +218,8 @@ const PackageCard: FC<{
       </ul>
 
       <div className="mt-auto">
-        <Button
-          onClick={onBuy}
-          variant="primary"
-          className="w-full"
-          disabled={outOfStock}
-        >
-          {outOfStock ? 'Tạm hết hàng' : 'Chọn gói này'}
+        <Button onClick={onBuy} variant="primary" className="w-full">
+          Chọn gói này
         </Button>
       </div>
     </article>
@@ -300,11 +297,11 @@ const PackagesSection: FC<{
             <section key={service.id} className="space-y-5 md:space-y-6">
               <ServiceHeading service={service} />
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-                {packages.map(({ raw, outOfStock }) => (
+                {packages.map(({ raw, mailAvailable }) => (
                   <PackageCard
                     key={raw.id}
                     pkg={raw}
-                    outOfStock={outOfStock}
+                    mailAvailable={mailAvailable}
                     onBuy={() => onBuy(raw)}
                   />
                 ))}
@@ -624,8 +621,7 @@ const Home: FC = () => {
         })
         .map((raw) => ({
           raw,
-          outOfStock:
-            raw.delivery_type === 'auto' && (stockByPackage[raw.id] ?? 0) === 0,
+          mailAvailable: (stockByPackage[raw.id] ?? 0) > 0,
         }));
 
       return servicePackages.length > 0
@@ -661,6 +657,9 @@ const Home: FC = () => {
         pkg={selectedPackage}
         open={orderModalOpen}
         onOpenChange={setOrderModalOpen}
+        mailAvailable={
+          selectedPackage ? (stockByPackage[selectedPackage.id] ?? 0) > 0 : true
+        }
       />
     </ClientLayout>
   );

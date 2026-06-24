@@ -5,16 +5,17 @@ import type { OrderStatus } from '@/types/orders';
 export type { OrderStatus };
 
 const ORDER_COLUMNS =
-  'id, customer_email, user_id, package_id, package_name, amount, status, delivery_type, account_id, note, created_at, paid_at, completed_at, cancelled_at';
+  'id, customer_email, package_id, package_name, amount, status, delivery_type, account_id, zalo_phone, created_at, paid_at, completed_at, cancelled_at';
 
 const createOrder = async (
   payload: TablesInsert<'orders'>,
 ): Promise<Tables<'orders'>> => {
-  const { data, error } = await supabase
-    .from('orders')
-    .insert(payload)
-    .select(ORDER_COLUMNS)
-    .single();
+  const { data, error } = await supabase.rpc('create_public_order', {
+    p_customer_email: payload.customer_email ?? null,
+    p_delivery_type: payload.delivery_type ?? 'mail',
+    p_package_id: payload.package_id ?? '',
+    p_zalo_phone: payload.zalo_phone ?? null,
+  });
   if (error) throw error;
   return data;
 };
@@ -28,22 +29,10 @@ const listOrders = async (): Promise<Tables<'orders'>[]> => {
   return data ?? [];
 };
 
-const listMyOrders = async (userId: string): Promise<Tables<'orders'>[]> => {
-  const { data, error } = await supabase
-    .from('orders')
-    .select(ORDER_COLUMNS)
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false });
-  if (error) throw error;
-  return data ?? [];
-};
-
 const getOrder = async (id: string): Promise<Tables<'orders'>> => {
-  const { data, error } = await supabase
-    .from('orders')
-    .select(ORDER_COLUMNS)
-    .eq('id', id)
-    .single();
+  const { data, error } = await supabase.rpc('get_public_order', {
+    p_order_id: id,
+  });
   if (error) throw error;
   return data;
 };
@@ -73,11 +62,4 @@ const deleteOrder = async (id: string): Promise<void> => {
   if (error) throw error;
 };
 
-export {
-  createOrder,
-  deleteOrder,
-  getOrder,
-  listMyOrders,
-  listOrders,
-  updateOrderStatus,
-};
+export { createOrder, deleteOrder, getOrder, listOrders, updateOrderStatus };

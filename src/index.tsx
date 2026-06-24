@@ -5,7 +5,6 @@ import { BrowserRouter, Route, Routes } from 'react-router';
 import { useAuth } from '@/stores/auth';
 import Home from '@/pages/home';
 import Login from '@/pages/login';
-import OrderHistory from '@/pages/order-history';
 import OrderSuccess from '@/pages/order-success';
 import NotFound from '@/pages/not-found';
 import AdminRoute from '@/components/shared/admin-route';
@@ -40,7 +39,6 @@ if (rootEl) {
           <AuthInit>
             <Routes>
               <Route path="/" element={<Home />} />
-              <Route path="/lich-su-mua-hang" element={<OrderHistory />} />
               <Route path="/dat-mua-thanh-cong" element={<OrderSuccess />} />
               <Route path="/don-hang/:orderId" element={<OrderSuccess />} />
               <Route path="/dang-nhap" element={<Login />} />

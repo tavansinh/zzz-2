@@ -70,7 +70,7 @@ const useOrdersAdmin = (): UseOrdersAdminReturn => {
     [setOrders],
   );
 
-  const fulfillAutoOrder = useCallback(
+  const fulfillMailOrder = useCallback(
     async (order: Tables<'orders'>, now: string) => {
       const accountId = await reserveAccount(order);
       try {
@@ -98,7 +98,7 @@ const useOrdersAdmin = (): UseOrdersAdminReturn => {
           });
           replaceOrder(completed);
         } catch (err) {
-          console.warn('err marking auto order completed', order.id, err);
+          console.warn('err marking mail order completed', order.id, err);
         }
       } catch (err) {
         await releaseAccount(accountId);
@@ -128,16 +128,16 @@ const useOrdersAdmin = (): UseOrdersAdminReturn => {
     [replaceOrder, setStatus],
   );
 
-  const runWithAutoOrZalo = useCallback(
+  const runWithMailOrZalo = useCallback(
     async (
       id: string,
-      auto: (order: Tables<'orders'>, now: string) => Promise<void>,
+      mail: (order: Tables<'orders'>, now: string) => Promise<void>,
       zalo: (order: Tables<'orders'>, now: string) => Promise<void>,
     ) => {
       const found = orders.find((o) => o.id === id);
       if (!found) throw new Error('Không tìm thấy đơn hàng');
       const now = new Date().toISOString();
-      const handler = found.delivery_type === 'auto' ? auto : zalo;
+      const handler = found.delivery_type === 'mail' ? mail : zalo;
       try {
         await handler(found, now);
       } finally {
@@ -148,13 +148,13 @@ const useOrdersAdmin = (): UseOrdersAdminReturn => {
   );
 
   const approve = useCallback(
-    (id: string) => runWithAutoOrZalo(id, fulfillAutoOrder, markPaidZalo),
-    [fulfillAutoOrder, markPaidZalo, runWithAutoOrZalo],
+    (id: string) => runWithMailOrZalo(id, fulfillMailOrder, markPaidZalo),
+    [fulfillMailOrder, markPaidZalo, runWithMailOrZalo],
   );
 
   const complete = useCallback(
-    (id: string) => runWithAutoOrZalo(id, fulfillAutoOrder, completeZalo),
-    [completeZalo, fulfillAutoOrder, runWithAutoOrZalo],
+    (id: string) => runWithMailOrZalo(id, fulfillMailOrder, completeZalo),
+    [completeZalo, fulfillMailOrder, runWithMailOrZalo],
   );
 
   const cancel = useCallback(
@@ -176,8 +176,8 @@ const useOrdersAdmin = (): UseOrdersAdminReturn => {
     async (id: string) => {
       const found = orders.find((o) => o.id === id);
       if (!found) throw new Error('Không tìm thấy đơn hàng');
-      if (found.delivery_type !== 'auto') {
-        throw new Error('Chỉ hỗ trợ giao lại cho gói tự động');
+      if (found.delivery_type !== 'mail') {
+        throw new Error('Chỉ hỗ trợ giao lại cho đơn giao qua mail');
       }
       const now = new Date().toISOString();
       const statusUpdate = setStatus(found.id, 'paid', {
@@ -191,7 +191,7 @@ const useOrdersAdmin = (): UseOrdersAdminReturn => {
       }
       await Promise.all([
         refresh(),
-        fulfillAutoOrder(
+        fulfillMailOrder(
           {
             ...found,
             account_id: null,
@@ -203,7 +203,7 @@ const useOrdersAdmin = (): UseOrdersAdminReturn => {
       ]);
       await refresh();
     },
-    [fulfillAutoOrder, orders, refresh, setStatus],
+    [fulfillMailOrder, orders, refresh, setStatus],
   );
 
   const remove = useCallback(

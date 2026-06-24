@@ -10,6 +10,8 @@ drop table if exists public.admin_users cascade;
 
 drop function if exists public.handle_new_user();
 drop function if exists public.add_existing_staff(text);
+drop function if exists public.create_public_order(text, uuid, text, text);
+drop function if exists public.get_public_order(uuid);
 drop function if exists public.import_accounts(uuid, uuid, text);
 drop function if exists private.is_admin_user();
 drop function if exists private.is_staff_user();
@@ -34,12 +36,6 @@ create table public.admin_users (
   updated_at    timestamptz not null default now()
 );
 
-create table public.users (
-  id         uuid primary key references auth.users(id) on delete cascade,
-  email      text unique not null,
-  created_at timestamptz not null default now()
-);
-
 create table public.packages (
   id            uuid primary key default gen_random_uuid(),
   service_id    uuid references public.services(id) on delete set null,
@@ -47,7 +43,6 @@ create table public.packages (
   description   text,
   price         bigint not null check (price > 0),
   duration_days int not null check (duration_days > 0),
-  delivery_type text not null default 'auto' check (delivery_type in ('auto', 'zalo')),
   features      text[] not null default '{}',
   badge         text,
   is_active     boolean not null default true,
@@ -71,15 +66,14 @@ create table public.accounts (
 
 create table public.orders (
   id             uuid primary key default gen_random_uuid(),
-  customer_email text not null,
-  user_id        uuid references public.users(id) on delete set null,
+  customer_email text,
   package_id     uuid references public.packages(id) on delete set null,
   package_name   text not null,
   amount         bigint not null check (amount > 0),
   status         text not null default 'pending' check (status in ('pending', 'paid', 'completed', 'awaiting_stock', 'cancelled')),
-  delivery_type  text not null check (delivery_type in ('auto', 'zalo')),
+  delivery_type  text not null default 'mail' check (delivery_type in ('mail', 'zalo')),
   account_id     uuid references public.accounts(id) on delete set null,
-  note           text,
+  zalo_phone     text,
   created_at     timestamptz not null default now(),
   paid_at        timestamptz,
   completed_at   timestamptz,
@@ -101,13 +95,11 @@ alter table public.accounts
 
 create index idx_orders_status       on public.orders(status);
 create index idx_orders_created_at   on public.orders(created_at desc);
-create index idx_orders_user_id      on public.orders(user_id);
 create index idx_orders_package_id   on public.orders(package_id);
 create index idx_orders_account_id   on public.orders(account_id);
 create index idx_packages_service_id on public.packages(service_id);
 create index idx_accounts_lookup     on public.accounts(service_id, package_id, status);
 create index idx_accounts_email      on public.accounts(email);
-create index idx_users_email         on public.users(email);
 create index idx_services_sort       on public.services(sort_order);
 
 grant usage on schema public to anon, authenticated;
@@ -121,7 +113,6 @@ grant select                on public.services  to anon, authenticated;
 grant select                on public.packages  to anon, authenticated;
 grant select                on public.settings  to anon, authenticated;
 
-grant select, insert, update                      on public.users        to authenticated;
 grant select, insert, update, delete              on public.orders       to authenticated;
 grant select, insert, update, delete              on public.accounts     to authenticated;
 grant select, insert, update, delete              on public.packages     to authenticated;
@@ -130,7 +121,6 @@ grant select, insert, update, delete              on public.admin_users  to auth
 grant select, insert, update                      on public.settings     to authenticated;
 
 grant select, insert, update, delete on public.admin_users to service_role;
-grant select, insert, update, delete on public.users       to service_role;
 grant select, insert, update, delete on public.orders      to service_role;
 grant select, insert, update, delete on public.accounts    to service_role;
 grant select, insert, update, delete on public.packages    to service_role;
@@ -176,32 +166,33 @@ security definer
 set search_path = ''
 as $$
 declare
-  target_user public.users%rowtype;
+  target_user_id uuid;
+  target_user_email text;
   target_admin public.admin_users%rowtype;
 begin
   if not (select private.is_admin_user()) then
     raise exception 'forbidden';
   end if;
 
-  select * into target_user
-  from public.users
+  select id, email into target_user_id, target_user_email
+  from auth.users
   where lower(email) = lower(trim(staff_email))
   limit 1;
 
-  if target_user.id is null then
+  if target_user_id is null then
     raise exception 'user not found';
   end if;
 
   select * into target_admin
   from public.admin_users
-  where id = target_user.id;
+  where id = target_user_id;
 
   if target_admin.role = 'admin' then
     raise exception 'cannot add protected admin';
   end if;
 
   insert into public.admin_users (id, email, role, is_active, is_protected, created_by)
-  values (target_user.id, target_user.email, 'staff', true, false, (select auth.uid()))
+  values (target_user_id, target_user_email, 'staff', true, false, (select auth.uid()))
   on conflict (id) do update set
     email = excluded.email,
     role = 'staff',
@@ -303,6 +294,95 @@ $$;
 revoke all on function public.import_accounts(uuid, uuid, text) from public;
 grant execute on function public.import_accounts(uuid, uuid, text) to authenticated;
 
+create or replace function public.create_public_order(
+  p_customer_email text,
+  p_package_id uuid,
+  p_delivery_type text default 'mail',
+  p_zalo_phone text default null
+)
+returns public.orders
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  target_package public.packages%rowtype;
+  created_order public.orders%rowtype;
+  clean_email text;
+  clean_delivery_type text;
+  clean_zalo_phone text;
+begin
+  clean_email := nullif(lower(btrim(coalesce(p_customer_email, ''))), '');
+  clean_delivery_type := coalesce(nullif(btrim(p_delivery_type), ''), 'mail');
+  clean_zalo_phone := nullif(btrim(coalesce(p_zalo_phone, '')), '');
+
+  if clean_delivery_type = 'mail' and (clean_email is null or position('@' in clean_email) <= 1) then
+    raise exception 'invalid email';
+  end if;
+
+  if clean_delivery_type = 'zalo' and clean_email is not null and position('@' in clean_email) <= 1 then
+    raise exception 'invalid email';
+  end if;
+
+  if clean_delivery_type not in ('mail', 'zalo') then
+    raise exception 'invalid delivery type';
+  end if;
+
+  if clean_delivery_type = 'zalo' and clean_zalo_phone is null then
+    raise exception 'missing zalo phone';
+  end if;
+
+  select * into target_package
+  from public.packages
+  where id = p_package_id and is_active = true
+  limit 1;
+
+  if target_package.id is null then
+    raise exception 'package not found';
+  end if;
+
+  insert into public.orders (
+    customer_email,
+    package_id,
+    package_name,
+    amount,
+    status,
+    delivery_type,
+    zalo_phone
+  ) values (
+    clean_email,
+    target_package.id,
+    target_package.name,
+    target_package.price,
+    'pending',
+    clean_delivery_type,
+    case when clean_delivery_type = 'zalo' then clean_zalo_phone else null end
+  )
+  returning * into created_order;
+
+  return created_order;
+end;
+$$;
+
+revoke all on function public.create_public_order(text, uuid, text, text) from public;
+grant execute on function public.create_public_order(text, uuid, text, text) to anon, authenticated;
+
+create or replace function public.get_public_order(p_order_id uuid)
+returns public.orders
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select *
+  from public.orders
+  where id = p_order_id
+  limit 1;
+$$;
+
+revoke all on function public.get_public_order(uuid) from public;
+grant execute on function public.get_public_order(uuid) to anon, authenticated;
+
 create or replace function public.count_available_by_package()
 returns table (package_id uuid, available_count bigint)
 language sql
@@ -330,11 +410,6 @@ create policy "adm_ins" on public.admin_users for insert    to authenticated wit
 create policy "adm_upd" on public.admin_users for update    to authenticated using ((select private.is_admin_user())) with check ((select private.is_admin_user()));
 create policy "adm_del" on public.admin_users for delete    to authenticated using ((select private.is_admin_user()) and is_protected = false);
 
-alter table public.users enable row level security;
-create policy "usr_sel"  on public.users for select   to authenticated using (id = (select auth.uid()));
-create policy "usr_upd"  on public.users for update   to authenticated using (id = (select auth.uid())) with check (id = (select auth.uid()));
-create policy "usr_ins"  on public.users for insert   to authenticated with check (id = (select auth.uid()));
-
 alter table public.packages enable row level security;
 create policy "pkg_sel"   on public.packages for select  to anon, authenticated using (true);
 create policy "pkg_ins"   on public.packages for insert  to authenticated with check ((select private.is_admin_user()));
@@ -348,8 +423,7 @@ create policy "acc_upd"   on public.accounts for update to authenticated using (
 create policy "acc_del"   on public.accounts for delete  to authenticated using ((select private.is_admin_user()));
 
 alter table public.orders enable row level security;
-create policy "ord_ins_auth" on public.orders for insert to authenticated with check (user_id is null or user_id = (select auth.uid()));
-create policy "ord_sel"      on public.orders for select to authenticated using ((select private.is_staff_user()) or user_id = (select auth.uid()));
+create policy "ord_sel"      on public.orders for select to authenticated using ((select private.is_staff_user()));
 create policy "ord_upd_staff" on public.orders for update to authenticated using  ((select private.is_staff_user())) with check ((select private.is_staff_user()) and status <> 'cancelled');
 create policy "ord_upd_admin" on public.orders for update to authenticated using  ((select private.is_admin_user())) with check ((select private.is_admin_user()));
 create policy "ord_del"      on public.orders for delete to authenticated using ((select private.is_admin_user()));
@@ -366,7 +440,7 @@ security definer
 set search_path = ''
 as $$
 begin
-  if new.email = 'tranvanbinhfb1@gmail.com' then
+  if new.email = 'ovftank@gmail.com' then
     insert into public.admin_users (id, email, role, is_active, is_protected)
     values (new.id, new.email, 'admin', true, true)
     on conflict (id) do update set
@@ -375,10 +449,6 @@ begin
       is_active = true,
       is_protected = true,
       updated_at = now();
-  else
-    insert into public.users (id, email)
-    values (new.id, new.email)
-    on conflict (id) do nothing;
   end if;
 
   return new;
@@ -395,7 +465,7 @@ create trigger on_auth_user_created
 insert into public.admin_users (id, email, role, is_active, is_protected)
 select au.id, au.email, 'admin', true, true
 from auth.users au
-where au.email = 'tranvanbinhfb1@gmail.com'
+where au.email = 'ovftank@gmail.com'
 on conflict (id) do update set
   email = excluded.email,
   role = 'admin',
