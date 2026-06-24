@@ -145,7 +145,7 @@ const AdminAdmins: FC = () => {
                 )}
               </td>
               <td className="px-4 py-3">
-                <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                <span className="inline-flex items-center gap-1 rounded-full bg-primary px-2 py-0.5 text-xs font-medium text-ink">
                   {roleLabel[row.role as AdminRole] ?? row.role}
                 </span>
               </td>
@@ -153,8 +153,8 @@ const AdminAdmins: FC = () => {
                 <span
                   className={`inline-flex min-h-7 items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
                     row.is_active
-                      ? 'bg-success/10 text-success'
-                      : 'bg-ink-muted/10 text-ink-muted'
+                      ? 'bg-success/15 text-ink'
+                      : 'bg-ink-muted/15 text-ink-muted'
                   }`}
                 >
                   {row.is_active ? (

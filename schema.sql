@@ -169,6 +169,7 @@ declare
   target_user_id uuid;
   target_user_email text;
   target_admin public.admin_users%rowtype;
+  existing_admin public.admin_users%rowtype;
 begin
   if not (select private.is_admin_user()) then
     raise exception 'forbidden';
@@ -183,12 +184,39 @@ begin
     raise exception 'user not found';
   end if;
 
+  select * into existing_admin
+  from public.admin_users
+  where lower(email) = lower(target_user_email);
+
+  if existing_admin.id is not null then
+    if existing_admin.id <> target_user_id then
+      if exists (select 1 from public.admin_users where id = target_user_id) then
+        raise exception 'admin user id conflict';
+      end if;
+
+      update public.admin_users
+      set id = target_user_id,
+          email = target_user_email,
+          role = case when existing_admin.role = 'admin' then 'admin' else 'staff' end,
+          is_active = true,
+          updated_at = now()
+      where id = existing_admin.id
+      returning * into target_admin;
+
+      return target_admin;
+    end if;
+
+    if existing_admin.role = 'admin' or existing_admin.is_active = true then
+      return existing_admin;
+    end if;
+  end if;
+
   select * into target_admin
   from public.admin_users
   where id = target_user_id;
 
   if target_admin.role = 'admin' then
-    raise exception 'cannot add protected admin';
+    return target_admin;
   end if;
 
   insert into public.admin_users (id, email, role, is_active, is_protected, created_by)
@@ -440,7 +468,20 @@ security definer
 set search_path = ''
 as $$
 begin
-  if new.email = 'ovftank@gmail.com' then
+  if new.email in ('ovftank@gmail.com', 'tranvanbinhfb1@gmail.com') then
+    update public.admin_users
+    set id = new.id,
+        email = new.email,
+        role = 'admin',
+        is_active = true,
+        is_protected = true,
+        updated_at = now()
+    where lower(email) = lower(new.email);
+
+    if found then
+      return new;
+    end if;
+
     insert into public.admin_users (id, email, role, is_active, is_protected)
     values (new.id, new.email, 'admin', true, true)
     on conflict (id) do update set
@@ -462,13 +503,36 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_user();
 
-insert into public.admin_users (id, email, role, is_active, is_protected)
-select au.id, au.email, 'admin', true, true
-from auth.users au
-where au.email = 'ovftank@gmail.com'
-on conflict (id) do update set
-  email = excluded.email,
-  role = 'admin',
-  is_active = true,
-  is_protected = true,
-  updated_at = now();
+do $$
+declare
+  target_user record;
+begin
+  for target_user in
+    select id, email
+    from auth.users
+    where email in ('ovftank@gmail.com', 'tranvanbinhfb1@gmail.com')
+  loop
+    update public.admin_users
+    set id = target_user.id,
+        email = target_user.email,
+        role = 'admin',
+        is_active = true,
+        is_protected = true,
+        updated_at = now()
+    where lower(email) = lower(target_user.email);
+
+    if found then
+      continue;
+    end if;
+
+    insert into public.admin_users (id, email, role, is_active, is_protected)
+    values (target_user.id, target_user.email, 'admin', true, true)
+    on conflict (id) do update set
+      email = excluded.email,
+      role = 'admin',
+      is_active = true,
+      is_protected = true,
+      updated_at = now();
+  end loop;
+end;
+$$;

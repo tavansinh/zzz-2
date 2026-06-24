@@ -62,7 +62,7 @@ const resolveForUser = async (
   return resolveAccount(user.id);
 };
 
-const useAuth = create<AuthState>((set) => {
+const useAuth = create<AuthState>((set, get) => {
   const applyResolvedAccount = (
     session: Session | null,
     user: User | null,
@@ -80,6 +80,7 @@ const useAuth = create<AuthState>((set) => {
   };
 
   let activeSubscription: Subscription | null = null;
+  let initializeSeq = 0;
 
   return {
     user: null,
@@ -89,9 +90,12 @@ const useAuth = create<AuthState>((set) => {
     adminRole: null,
 
     initialize: async () => {
+      const seq = ++initializeSeq;
       const { data: sessionData } = await supabase.auth.getSession();
+      if (seq !== initializeSeq) return () => {};
       const user = sessionData.session?.user ?? null;
       const resolved = await resolveForUser(user);
+      if (seq !== initializeSeq) return () => {};
 
       set({
         session: sessionData.session,
@@ -102,13 +106,19 @@ const useAuth = create<AuthState>((set) => {
       });
 
       activeSubscription?.unsubscribe();
-      const { data } = supabase.auth.onAuthStateChange(
-        async (_event, session) => {
-          const nextUser = session?.user ?? null;
-          const nextResolved = await resolveForUser(nextUser);
-          applyResolvedAccount(session, nextUser, nextResolved);
-        },
-      );
+      const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+        const nextUser = session?.user ?? null;
+        set({ session, user: nextUser });
+
+        window.setTimeout(() => {
+          void (async () => {
+            const nextResolved = await resolveForUser(nextUser);
+            const current = get().session;
+            if (current?.access_token !== session?.access_token) return;
+            applyResolvedAccount(session, nextUser, nextResolved);
+          })();
+        }, 0);
+      });
       const mySubscription = data.subscription;
       activeSubscription = mySubscription;
 
@@ -155,8 +165,6 @@ const useAuth = create<AuthState>((set) => {
     },
 
     logout: async () => {
-      activeSubscription?.unsubscribe();
-      activeSubscription = null;
       await supabase.auth.signOut();
       set({ user: null, session: null, accountType: null, adminRole: null });
     },

@@ -59,13 +59,14 @@ const ChatSupport: FC = () => {
           <ChatCircleDotsIcon
             size={28}
             weight="fill"
-            className="transition-all duration-200 ease-out group-data-[popup-open]:scale-50 group-data-[popup-open]:opacity-0"
+            aria-hidden="true"
+            className="transition-[transform,opacity] duration-200 ease-out group-data-[popup-open]:scale-50 group-data-[popup-open]:opacity-0 motion-reduce:transition-none"
           />
           <XIcon
             size={26}
             weight="bold"
-            aria-hidden
-            className="absolute transition-all duration-200 ease-out scale-50 opacity-0 group-data-[popup-open]:scale-100 group-data-[popup-open]:opacity-100"
+            aria-hidden="true"
+            className="absolute scale-50 opacity-0 transition-[transform,opacity] duration-200 ease-out group-data-[popup-open]:scale-100 group-data-[popup-open]:opacity-100 motion-reduce:transition-none"
           />
         </Popover.Trigger>
         <Popover.Portal>

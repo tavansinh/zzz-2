@@ -5,13 +5,12 @@ import { roleLabel, statusDotClass, statusLabel } from '@/lib/labels';
 import { routes } from '@/lib/routes';
 import { useAuth } from '@/stores/auth';
 import type { OrderStatus } from '@/types/orders';
-import
-  {
-    CircleNotchIcon,
-    CurrencyDollarIcon,
-    ShoppingCartIcon,
-    TrendUpIcon,
-  } from '@phosphor-icons/react';
+import {
+  CircleNotchIcon,
+  CurrencyDollarIcon,
+  ShoppingCartIcon,
+  TrendUpIcon,
+} from '@phosphor-icons/react';
 import { type FC, useMemo } from 'react';
 import { Link } from 'react-router';
 
@@ -49,7 +48,7 @@ const AdminDashboard: FC = () => {
         </h1>
         <p className="text-ink-muted mt-1 text-sm text-pretty">
           Xin chào, {user?.email} —{' '}
-          <span className="text-primary font-medium">
+          <span className="text-ink font-medium">
             {adminRole ? roleLabel[adminRole] : ''}
           </span>
         </p>

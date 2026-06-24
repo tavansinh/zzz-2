@@ -70,49 +70,75 @@ const useOrdersAdmin = (): UseOrdersAdminReturn => {
     [setOrders],
   );
 
-  const fulfillMailOrder = useCallback(
+  const approveMailOrder = useCallback(
     async (order: Tables<'orders'>, now: string) => {
-      const accountId = await reserveAccount(order);
+      let accountId: string;
       try {
-        const paid = await setStatus(order.id, 'paid', {
+        accountId = await reserveAccount(order);
+      } catch (err) {
+        const awaiting = await setStatus(order.id, 'awaiting_stock', {
+          paid_at: order.paid_at ?? now,
+          account_id: null,
+        });
+        replaceOrder(awaiting);
+        throw err;
+      }
+
+      let paid: Tables<'orders'>;
+      try {
+        paid = await setStatus(order.id, 'paid', {
           paid_at: order.paid_at ?? now,
           account_id: accountId,
         });
         replaceOrder(paid);
-
-        try {
-          await sendOrderEmail(paid.id, 'account_delivery');
-        } catch (err) {
-          const reverted = await setStatus(order.id, 'pending', {
-            paid_at: null,
-            account_id: null,
-          });
-          replaceOrder(reverted);
-          await releaseAccount(accountId);
-          throw err;
-        }
-
-        try {
-          const completed = await setStatus(order.id, 'completed', {
-            completed_at: now,
-          });
-          replaceOrder(completed);
-        } catch (err) {
-          console.warn('err marking mail order completed', order.id, err);
-        }
       } catch (err) {
         await releaseAccount(accountId);
         throw err;
       }
+
+      try {
+        await sendOrderEmail(paid.id, 'account_delivery');
+      } catch (err) {
+        const reverted = await setStatus(order.id, 'pending', {
+          paid_at: null,
+          account_id: null,
+        });
+        replaceOrder(reverted);
+        await releaseAccount(accountId);
+        throw err;
+      }
+
+      try {
+        const completed = await setStatus(order.id, 'completed', {
+          completed_at: now,
+        });
+        replaceOrder(completed);
+      } catch (err) {
+        console.warn('err marking mail order completed', order.id, err);
+      }
     },
     [replaceOrder, setStatus],
+  );
+
+  const completeMailOrder = useCallback(
+    async (order: Tables<'orders'>, now: string) => {
+      if (!order.account_id) {
+        await approveMailOrder(order, now);
+        return;
+      }
+
+      const completed = await setStatus(order.id, 'completed', {
+        completed_at: order.completed_at ?? now,
+      });
+      replaceOrder(completed);
+    },
+    [approveMailOrder, replaceOrder, setStatus],
   );
 
   const markPaidZalo = useCallback(
     async (order: Tables<'orders'>, now: string) => {
       const paid = await setStatus(order.id, 'paid', { paid_at: now });
       replaceOrder(paid);
-      await sendOrderEmail(paid.id, 'payment_received');
     },
     [replaceOrder, setStatus],
   );
@@ -123,7 +149,6 @@ const useOrdersAdmin = (): UseOrdersAdminReturn => {
         completed_at: now,
       });
       replaceOrder(completed);
-      await sendOrderEmail(completed.id, 'manual_completed');
     },
     [replaceOrder, setStatus],
   );
@@ -148,13 +173,13 @@ const useOrdersAdmin = (): UseOrdersAdminReturn => {
   );
 
   const approve = useCallback(
-    (id: string) => runWithMailOrZalo(id, fulfillMailOrder, markPaidZalo),
-    [fulfillMailOrder, markPaidZalo, runWithMailOrZalo],
+    (id: string) => runWithMailOrZalo(id, approveMailOrder, markPaidZalo),
+    [approveMailOrder, markPaidZalo, runWithMailOrZalo],
   );
 
   const complete = useCallback(
-    (id: string) => runWithMailOrZalo(id, fulfillMailOrder, completeZalo),
-    [completeZalo, fulfillMailOrder, runWithMailOrZalo],
+    (id: string) => runWithMailOrZalo(id, completeMailOrder, completeZalo),
+    [completeMailOrder, completeZalo, runWithMailOrZalo],
   );
 
   const cancel = useCallback(
@@ -164,6 +189,7 @@ const useOrdersAdmin = (): UseOrdersAdminReturn => {
       const now = new Date().toISOString();
       const cancelled = await setStatus(found.id, 'cancelled', {
         cancelled_at: now,
+        account_id: null,
       });
       replaceOrder(cancelled);
       if (found.account_id) await releaseAccount(found.account_id);
@@ -180,30 +206,24 @@ const useOrdersAdmin = (): UseOrdersAdminReturn => {
         throw new Error('Chỉ hỗ trợ giao lại cho đơn giao qua mail');
       }
       const now = new Date().toISOString();
-      const statusUpdate = setStatus(found.id, 'paid', {
-        paid_at: now,
-        account_id: null,
-      });
       if (found.account_id) {
-        await Promise.all([releaseAccount(found.account_id), statusUpdate]);
-      } else {
-        await statusUpdate;
+        const cleared = await setStatus(found.id, 'awaiting_stock', {
+          account_id: null,
+        });
+        replaceOrder(cleared);
+        await releaseAccount(found.account_id);
       }
-      await Promise.all([
-        refresh(),
-        fulfillMailOrder(
-          {
-            ...found,
-            account_id: null,
-            status: 'paid',
-            paid_at: now,
-          },
-          now,
-        ),
-      ]);
+      await approveMailOrder(
+        {
+          ...found,
+          account_id: null,
+          status: 'awaiting_stock',
+        },
+        now,
+      );
       await refresh();
     },
-    [fulfillMailOrder, orders, refresh, setStatus],
+    [approveMailOrder, orders, refresh, replaceOrder, setStatus],
   );
 
   const remove = useCallback(

@@ -484,7 +484,7 @@ const AdminAccounts: FC = () => {
         </div>
         <div className="border-border/50 bg-surface-1 rounded-lg border p-4">
           <p className="text-ink-muted text-xs">Khả dụng</p>
-          <p className="text-success mt-1 text-2xl font-bold tabular-nums">
+          <p className="text-ink mt-1 text-2xl font-bold tabular-nums">
             {totals.available}
           </p>
         </div>
@@ -555,7 +555,7 @@ const AdminAccounts: FC = () => {
                 className={`inline-flex min-h-7 items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
                   acc.status === 'used'
                     ? 'bg-ink-muted/10 text-ink-muted'
-                    : 'bg-success/10 text-success'
+                    : 'bg-success/15 text-ink'
                 }`}
               >
                 {acc.status === 'used' ? (

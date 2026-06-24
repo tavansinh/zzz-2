@@ -48,7 +48,7 @@ const AdminTable: FC<{
   <div className="bg-surface-1 border-border/50 overflow-hidden rounded-lg border shadow-[0_1px_2px_rgba(0,0,0,0.4),0_2px_6px_rgba(0,0,0,0.3)]">
     {toolbar}
     <div className="overflow-x-auto">
-      <table className="w-full text-left text-sm">
+      <table className="w-full min-w-[640px] text-left text-sm">
         <thead className="bg-surface-2 text-ink-muted">
           <tr>
             {headers.map((header, index) => (

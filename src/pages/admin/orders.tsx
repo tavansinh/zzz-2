@@ -79,9 +79,11 @@ const OrderRow: FC<{
   return (
     <tr className="text-ink hover:bg-white/3 transition-colors duration-150">
       <td className="px-4 py-3 align-top">
-        <div className="font-medium text-pretty">{order.customer_email}</div>
+        <div className="font-medium text-pretty">
+          {order.customer_email ?? (isZalo ? 'Khách Zalo' : 'Không có')}
+        </div>
         {isZalo && order.zalo_phone && (
-          <div className="text-primary mt-0.5 flex items-start gap-1 text-xs">
+          <div className="text-ink-muted mt-0.5 flex items-start gap-1 text-xs">
             <ChatsCircleIcon
               size={12}
               weight="fill"
@@ -215,6 +217,11 @@ const AdminOrders: FC = () => {
     return orders.filter((o) => o.status === filter);
   }, [orders, filter]);
 
+  const activeViewOrder = useMemo(() => {
+    if (!viewOrder) return null;
+    return orders.find((order) => order.id === viewOrder.id) ?? viewOrder;
+  }, [orders, viewOrder]);
+
   const runOrder = useCallback(
     async (id: string, fn: (id: string) => Promise<void>) => {
       setBusyId(id);
@@ -272,8 +279,8 @@ const AdminOrders: FC = () => {
     }
   }, [deleteId, remove, toast]);
 
-  const viewAccount = viewOrder?.account_id
-    ? accountsById.get(viewOrder.account_id)
+  const viewAccount = activeViewOrder?.account_id
+    ? accountsById.get(activeViewOrder.account_id)
     : null;
 
   if (loading) {
@@ -348,57 +355,64 @@ const AdminOrders: FC = () => {
       </AdminTable>
 
       <Dialog
-        open={!!viewOrder}
+        open={!!activeViewOrder}
         onOpenChange={(o) => !o && setViewOrder(null)}
         title="Chi tiết đơn hàng"
         description="Thông tin đầy đủ và tài khoản đã gán (nếu có)"
       >
-        {viewOrder && (
+        {activeViewOrder && (
           <div className="space-y-3 text-sm">
-            <Row label="Mã đơn" value={viewOrder.id} mono />
+            <Row label="Mã đơn" value={activeViewOrder.id} mono />
             <Row
               label="Khách hàng"
-              value={viewOrder.customer_email ?? 'Không có'}
+              value={
+                activeViewOrder.customer_email ??
+                (activeViewOrder.delivery_type === 'zalo'
+                  ? 'Khách Zalo'
+                  : 'Không có')
+              }
             />
-            <Row label="Gói" value={viewOrder.package_name} />
-            <Row label="Số tiền" value={formatVnd(viewOrder.amount)} />
+            <Row label="Gói" value={activeViewOrder.package_name} />
+            <Row label="Số tiền" value={formatVnd(activeViewOrder.amount)} />
             <Row
               label="Trạng thái"
               value={
-                statusLabel[viewOrder.status as OrderStatus] ?? viewOrder.status
+                statusLabel[activeViewOrder.status as OrderStatus] ??
+                activeViewOrder.status
               }
             />
             <Row
               label="Hình thức"
               value={
-                deliveryShortLabel[viewOrder.delivery_type as DeliveryType] ??
-                viewOrder.delivery_type
+                deliveryShortLabel[
+                  activeViewOrder.delivery_type as DeliveryType
+                ] ?? activeViewOrder.delivery_type
               }
             />
             <Row
               label="Ngày tạo"
-              value={formatDateFull(viewOrder.created_at)}
+              value={formatDateFull(activeViewOrder.created_at)}
             />
-            {viewOrder.paid_at && (
+            {activeViewOrder.paid_at && (
               <Row
                 label="Nhận tiền lúc"
-                value={formatDateFull(viewOrder.paid_at)}
+                value={formatDateFull(activeViewOrder.paid_at)}
               />
             )}
-            {viewOrder.completed_at && (
+            {activeViewOrder.completed_at && (
               <Row
                 label="Hoàn thành lúc"
-                value={formatDateFull(viewOrder.completed_at)}
+                value={formatDateFull(activeViewOrder.completed_at)}
               />
             )}
-            {viewOrder.cancelled_at && (
+            {activeViewOrder.cancelled_at && (
               <Row
                 label="Hủy lúc"
-                value={formatDateFull(viewOrder.cancelled_at)}
+                value={formatDateFull(activeViewOrder.cancelled_at)}
               />
             )}
-            {viewOrder.zalo_phone && (
-              <Row label="Số Zalo" value={viewOrder.zalo_phone} />
+            {activeViewOrder.zalo_phone && (
+              <Row label="Số Zalo" value={activeViewOrder.zalo_phone} />
             )}
 
             {viewAccount ? (
@@ -410,8 +424,8 @@ const AdminOrders: FC = () => {
                 <Row label="Mật khẩu" value={viewAccount.password} mono />
               </div>
             ) : (
-              viewOrder.status !== 'pending' &&
-              viewOrder.status !== 'cancelled' && (
+              activeViewOrder.status !== 'pending' &&
+              activeViewOrder.status !== 'cancelled' && (
                 <p className="text-ink-muted text-xs text-pretty">
                   Chưa gán tài khoản cho đơn này.
                 </p>
@@ -420,26 +434,26 @@ const AdminOrders: FC = () => {
 
             <div className="flex items-center justify-between pt-2">
               <div className="flex flex-wrap gap-2">
-                {viewOrder.status === 'awaiting_stock' &&
-                  viewOrder.delivery_type === 'mail' && (
+                {activeViewOrder.status === 'awaiting_stock' &&
+                  activeViewOrder.delivery_type === 'mail' && (
                     <Button
                       size="sm"
                       variant="outline"
-                      disabled={busyId === viewOrder.id}
-                      onClick={() => handleRetry(viewOrder.id)}
+                      disabled={busyId === activeViewOrder.id}
+                      onClick={() => handleRetry(activeViewOrder.id)}
                     >
                       <ArrowsCounterClockwiseIcon size={14} />
                       Giao lại
                     </Button>
                   )}
-                {viewOrder.status === 'completed' &&
-                  viewOrder.delivery_type === 'mail' &&
+                {activeViewOrder.status === 'completed' &&
+                  activeViewOrder.delivery_type === 'mail' &&
                   viewAccount && (
                     <Button
                       size="sm"
                       variant="outline"
                       disabled={resending}
-                      onClick={() => handleResendEmail(viewOrder)}
+                      onClick={() => handleResendEmail(activeViewOrder)}
                     >
                       <PaperPlaneIcon size={14} />
                       {resending ? 'Đang gửi…' : 'Gửi lại email'}

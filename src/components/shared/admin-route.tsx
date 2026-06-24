@@ -1,9 +1,8 @@
 import { type FC, type ReactNode } from 'react';
-import { Navigate, useLocation } from 'react-router';
+import { useLocation } from 'react-router';
 import { useAuth } from '@/stores/auth';
 import { Spinner } from '@/components/ui';
-import { routes } from '@/lib/routes';
-import Login from '@/pages/login';
+import AdminLogin from '@/pages/admin/login';
 
 const AdminRoute: FC<{ children: ReactNode }> = ({ children }) => {
   const { user, accountType, isLoading } = useAuth();
@@ -18,11 +17,11 @@ const AdminRoute: FC<{ children: ReactNode }> = ({ children }) => {
   }
 
   if (!user) {
-    return <Login redirectTo={location.pathname} />;
+    return <AdminLogin redirectTo={location.pathname} />;
   }
 
   if (accountType !== 'admin') {
-    return <Navigate to={routes.home} replace />;
+    return <AdminLogin redirectTo={location.pathname} />;
   }
 
   return <>{children}</>;

@@ -4,7 +4,6 @@ import '@/assets/css/index.css';
 import { BrowserRouter, Route, Routes } from 'react-router';
 import { useAuth } from '@/stores/auth';
 import Home from '@/pages/home';
-import Login from '@/pages/login';
 import OrderSuccess from '@/pages/order-success';
 import NotFound from '@/pages/not-found';
 import AdminRoute from '@/components/shared/admin-route';
@@ -41,7 +40,6 @@ if (rootEl) {
               <Route path="/" element={<Home />} />
               <Route path="/dat-mua-thanh-cong" element={<OrderSuccess />} />
               <Route path="/don-hang/:orderId" element={<OrderSuccess />} />
-              <Route path="/dang-nhap" element={<Login />} />
               <Route path="/admin/login" element={<AdminLogin />} />
               <Route
                 path="/admin"

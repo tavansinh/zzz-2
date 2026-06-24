@@ -547,7 +547,7 @@ const AdminPackages: FC = () => {
                   key={svc.id}
                   className={`inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors duration-150 ${
                     isActive
-                      ? 'border-primary/50 bg-primary/10 text-primary'
+                      ? 'border-primary bg-primary text-ink'
                       : 'border-border/50 bg-surface-2 text-ink-muted hover:border-border hover:text-ink'
                   }`}
                 >
@@ -611,7 +611,7 @@ const AdminPackages: FC = () => {
               <div className="flex items-center gap-2">
                 <div className="font-medium text-pretty">{pkg.name}</div>
                 {pkg.badge && (
-                  <span className="bg-primary/15 text-primary inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide">
+                  <span className="bg-primary inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-ink">
                     {pkg.badge}
                   </span>
                 )}
@@ -631,8 +631,8 @@ const AdminPackages: FC = () => {
                 onClick={() => setActive(pkg.id, !pkg.is_active)}
                 className={`inline-flex min-h-7 items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium transition-colors duration-150 ${
                   pkg.is_active
-                    ? 'bg-success/10 text-success'
-                    : 'bg-ink-muted/10 text-ink-muted'
+                    ? 'bg-success/15 text-ink'
+                    : 'bg-ink-muted/15 text-ink-muted'
                 } ${canEdit ? '' : 'cursor-default'}`}
               >
                 {pkg.is_active ? (

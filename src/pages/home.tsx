@@ -1,4 +1,7 @@
+import capcutIcon from '@/assets/images/capcut.ico';
 import heroImage from '@/assets/images/hero-image.png';
+import netflixIcon from '@/assets/images/netflix.ico';
+import youtubeIcon from '@/assets/images/youtube.ico';
 import ClientLayout from '@/components/layout/client-layout';
 import OrderModal from '@/components/shared/order-modal';
 import { Button } from '@/components/ui';
@@ -63,6 +66,15 @@ const formatDurationLabel = (durationDays: number): string => {
 const serviceMark = (name: string): string =>
   name.trim().charAt(0).toUpperCase();
 
+const SERVICE_ICONS = [
+  { pattern: /netflix/i, src: netflixIcon, alt: 'Netflix' },
+  { pattern: /youtube|you\s*tube/i, src: youtubeIcon, alt: 'YouTube Premium' },
+  { pattern: /capcut|cap\s*cut/i, src: capcutIcon, alt: 'CapCut' },
+] as const;
+
+const getServiceIcon = (name: string) =>
+  SERVICE_ICONS.find(({ pattern }) => pattern.test(name));
+
 const Hero: FC<{ latestServices: HeroServiceItem[] }> = ({
   latestServices,
 }) => (
@@ -70,6 +82,8 @@ const Hero: FC<{ latestServices: HeroServiceItem[] }> = ({
     <img
       src={heroImage}
       alt=""
+      width={1920}
+      height={1080}
       className="pointer-events-none absolute inset-0 h-full w-full select-none object-cover img-outline"
     />
     <div className="pointer-events-none absolute inset-0 bg-black/45" />
@@ -77,18 +91,12 @@ const Hero: FC<{ latestServices: HeroServiceItem[] }> = ({
 
     <div className="relative z-10 mx-auto w-full max-w-6xl px-6 pb-10 pt-20 text-center md:px-8 md:pb-14 md:pt-24 lg:pb-16 lg:pt-28">
       <div className="mx-auto max-w-3xl">
-        <p className="mb-6 inline-flex items-center gap-2 rounded-full border border-primary/40 bg-primary/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
+        <p className="border-border/60 bg-canvas/70 text-ink-muted mb-6 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em]">
           4K Premium
         </p>
 
-        <h1 className="mb-6 text-balance text-4xl font-bold tracking-tight text-ink md:text-6xl lg:text-7xl">
-          <span className="bg-gradient-to-br from-[#FF4D6D] via-[#E50914] to-[#7A0000] bg-clip-text text-transparent drop-shadow-[0_2px_18px_rgba(229,9,20,0.35)]">
-            Netflix
-          </span>{' '}
-          &amp;{' '}
-          <span className="bg-gradient-to-br from-[#FF4D6D] via-[#E50914] to-[#7A0000] bg-clip-text text-transparent drop-shadow-[0_2px_18px_rgba(229,9,20,0.35)]">
-            YouTube Premium
-          </span>
+        <h1 className="text-ink mb-6 text-balance text-4xl font-bold tracking-tight md:text-6xl lg:text-7xl">
+          Netflix &amp; YouTube Premium
           <br />
           dịch vụ tài khoản giá rẻ
         </h1>
@@ -109,17 +117,32 @@ const Hero: FC<{ latestServices: HeroServiceItem[] }> = ({
 
         {latestServices.length > 0 && (
           <div className="mt-10 flex flex-wrap justify-center gap-2.5">
-            {latestServices.map((service) => (
-              <div
-                key={service.id}
-                className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-canvas/70 px-4 py-2 text-sm text-ink shadow-[0_0_0_1px_rgba(255,255,255,0.03)] backdrop-blur-xs"
-              >
-                <span className="inline-flex h-6 w-6 items-center justify-center rounded bg-primary text-xs font-bold text-white">
-                  {serviceMark(service.name)}
-                </span>
-                <span className="text-pretty">{service.name}</span>
-              </div>
-            ))}
+            {latestServices.map((service) => {
+              const icon = getServiceIcon(service.name);
+
+              return (
+                <div
+                  key={service.id}
+                  className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-canvas/70 px-4 py-2 text-sm text-ink shadow-[0_0_0_1px_rgba(255,255,255,0.03)] backdrop-blur-xs"
+                >
+                  <span className="inline-flex h-6 w-6 items-center justify-center overflow-hidden rounded bg-surface-2">
+                    {icon ? (
+                      <img
+                        src={icon.src}
+                        alt={icon.alt}
+                        className="h-4 w-4 object-contain"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <span className="text-xs font-bold text-white">
+                        {serviceMark(service.name)}
+                      </span>
+                    )}
+                  </span>
+                  <span className="text-pretty">{service.name}</span>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
@@ -129,7 +152,7 @@ const Hero: FC<{ latestServices: HeroServiceItem[] }> = ({
 
 const FeatureItem: FC<{ text: string }> = ({ text }) => (
   <li className="flex items-start gap-2.5">
-    <CheckIcon size={14} weight="bold" className="mt-1 shrink-0 text-primary" />
+    <CheckIcon size={14} weight="bold" className="text-success mt-1 shrink-0" />
     <span className="text-sm leading-relaxed text-ink-muted text-pretty">
       {text}
     </span>
@@ -144,17 +167,32 @@ const CardBadge: FC<{ children: string }> = ({ children }) => (
   </div>
 );
 
-const ServiceHeading: FC<{ service: Tables<'services'> }> = ({ service }) => (
-  <div className="mb-6 flex items-center gap-3 md:mb-8">
-    <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded bg-primary text-sm font-bold text-white shadow-[0_6px_18px_rgba(229,9,20,0.28)]">
-      {serviceMark(service.name)}
-    </span>
-    <h2 className="text-2xl font-semibold tracking-tight text-ink text-balance md:text-3xl">
-      {service.name}
-    </h2>
-    <div className="h-px flex-1 bg-border/70" />
-  </div>
-);
+const ServiceHeading: FC<{ service: Tables<'services'> }> = ({ service }) => {
+  const icon = getServiceIcon(service.name);
+
+  return (
+    <div className="mb-6 flex items-center gap-3 md:mb-8">
+      <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded bg-surface-2 shadow-[0_6px_18px_rgba(229,9,20,0.28)]">
+        {icon ? (
+          <img
+            src={icon.src}
+            alt={icon.alt}
+            className="h-5 w-5 object-contain"
+            loading="lazy"
+          />
+        ) : (
+          <span className="text-sm font-bold text-white">
+            {serviceMark(service.name)}
+          </span>
+        )}
+      </span>
+      <h2 className="text-2xl font-semibold tracking-tight text-ink text-balance md:text-3xl">
+        {service.name}
+      </h2>
+      <div className="h-px flex-1 bg-border/70" />
+    </div>
+  );
+};
 
 const PackageCard: FC<{
   pkg: Tables<'packages'>;
@@ -206,7 +244,7 @@ const PackageCard: FC<{
             className="shrink-0 text-warning"
           />
         )}
-        <span className={mailAvailable ? 'text-success' : 'text-warning'}>
+        <span className="text-ink">
           {mailAvailable ? 'Mail sẵn hàng' : 'Mail hết, chọn Zalo'}
         </span>
       </div>
@@ -225,6 +263,14 @@ const PackageCard: FC<{
     </article>
   );
 };
+
+const SKELETON_SECTIONS = ['skeleton-section-1', 'skeleton-section-2'] as const;
+const SKELETON_CARDS = [
+  'skeleton-card-1',
+  'skeleton-card-2',
+  'skeleton-card-3',
+  'skeleton-card-4',
+] as const;
 
 const PackagesSection: FC<{
   groups: ServiceGroup[];
@@ -245,16 +291,16 @@ const PackagesSection: FC<{
 
       {loading && (
         <div className="grid gap-10">
-          {Array.from({ length: 2 }).map((_, index) => (
+          {SKELETON_SECTIONS.map((sectionId) => (
             <div
-              key={`skeleton-section-${index}`}
+              key={sectionId}
               className="space-y-5 animate-pulse motion-reduce:animate-none"
             >
               <div className="h-8 w-56 rounded bg-surface-2" />
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-                {Array.from({ length: 4 }).map((__, cardIndex) => (
+                {SKELETON_CARDS.map((cardId) => (
                   <div
-                    key={`skeleton-card-${cardIndex}`}
+                    key={cardId}
                     className="min-h-90 rounded-lg border border-border/70 bg-surface-1 p-5"
                   >
                     <div className="mb-6 h-4 w-28 rounded bg-surface-2" />

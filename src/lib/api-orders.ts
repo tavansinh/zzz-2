@@ -17,6 +17,7 @@ const createOrder = async (
     p_zalo_phone: payload.zalo_phone ?? null,
   });
   if (error) throw error;
+  if (!data) throw new Error('Không thể tạo đơn hàng');
   return data;
 };
 
@@ -34,6 +35,7 @@ const getOrder = async (id: string): Promise<Tables<'orders'>> => {
     p_order_id: id,
   });
   if (error) throw error;
+  if (!data) throw new Error('Không tìm thấy đơn hàng');
   return data;
 };
 

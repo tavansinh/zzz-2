@@ -36,8 +36,11 @@ const Dialog: FC<DialogProps> = ({
                 </BaseDialog.Description>
               )}
             </div>
-            <BaseDialog.Close className="text-ink-muted hover:text-ink rounded-md p-1 transition-colors duration-150 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-white">
-              <XIcon size={18} />
+            <BaseDialog.Close
+              aria-label="Đóng"
+              className="text-ink-muted hover:text-ink rounded-md p-1 transition-colors duration-150 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-white"
+            >
+              <XIcon size={18} aria-hidden="true" />
             </BaseDialog.Close>
           </div>
           <div className="flex-1">{children}</div>

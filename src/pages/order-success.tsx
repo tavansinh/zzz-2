@@ -120,7 +120,10 @@ const useOrderData = (
     let cancelled = false;
     getOrder(trackingId)
       .then((data) => {
-        if (!cancelled) setOrder(toSummary(data));
+        if (!cancelled) {
+          setOrder(toSummary(data));
+          setError(null);
+        }
       })
       .catch((err: unknown) => {
         if (!cancelled) setError(toErrorMessage(err));
@@ -179,7 +182,7 @@ const useOrderPolling = (
   trackingId: string | null,
   isComplete: boolean,
   applyOrder: (next: OrderSummary) => void,
-  reportError: (msg: string) => void,
+  reportResult: (msg: string | null) => void,
 ) => {
   useEffect(() => {
     if (!trackingId || isComplete) return;
@@ -187,17 +190,20 @@ const useOrderPolling = (
     const timer = window.setInterval(() => {
       getOrder(trackingId)
         .then((data) => {
-          if (!cancelled) applyOrder(toSummary(data));
+          if (!cancelled) {
+            applyOrder(toSummary(data));
+            reportResult(null);
+          }
         })
         .catch((err: unknown) => {
-          if (!cancelled) reportError(toErrorMessage(err));
+          if (!cancelled) reportResult(toErrorMessage(err));
         });
     }, 15000);
     return () => {
       cancelled = true;
       window.clearInterval(timer);
     };
-  }, [applyOrder, isComplete, reportError, trackingId]);
+  }, [applyOrder, isComplete, reportResult, trackingId]);
 };
 
 const InfoRow: FC<{
@@ -237,22 +243,20 @@ const InfoRow: FC<{
 const TrackingStatus: FC<{ order: OrderSummary }> = ({ order }) => {
   const accent =
     order.status === 'completed'
-      ? 'border-l-success/70'
+      ? 'border-success/40 bg-success/10 text-ink'
       : order.status === 'paid'
-        ? 'border-l-primary/80'
+        ? 'border-primary/40 bg-primary/10 text-ink'
         : order.status === 'awaiting_stock'
-          ? 'border-l-info/70'
+          ? 'border-info/40 bg-info/10 text-ink'
           : order.status === 'cancelled'
-            ? 'border-l-ink-muted/70'
-            : 'border-l-warning/70';
+            ? 'border-border bg-ink-muted/10 text-ink-muted'
+            : 'border-warning/40 bg-warning/10 text-ink';
 
   return (
     <div
-      className={`rounded-lg border border-l-2 border-border bg-surface-1 p-4 shadow-[0_1px_2px_rgba(0,0,0,0.4),0_2px_6px_rgba(0,0,0,0.3)] ${accent}`}
+      className={`rounded-lg border bg-surface-1 p-4 shadow-card ${accent}`}
     >
-      <p className="text-ink-muted mb-1 text-xs font-medium">
-        Trạng thái đơn hàng
-      </p>
+      <p className="mb-1 text-xs font-medium opacity-80">Trạng thái đơn hàng</p>
       <h2 className="text-ink text-xl font-bold tracking-tight text-balance">
         {statusLabel[order.status]}
       </h2>
@@ -261,14 +265,14 @@ const TrackingStatus: FC<{ order: OrderSummary }> = ({ order }) => {
 };
 
 const paymentStatusLabel = (status: OrderStatus): string => {
-  if (status === 'pending' || status === 'awaiting_stock')
-    return 'Chưa nhận tiền';
+  if (status === 'pending') return 'Chưa nhận tiền';
+  if (status === 'awaiting_stock') return 'Đã nhận tiền, đang chờ hàng';
   if (status === 'cancelled') return 'Đã hủy';
   return 'Đã nhận tiền';
 };
 
 const OrderInfoCard: FC<{ order: OrderSummary }> = ({ order }) => (
-  <div className="rounded-lg border border-border bg-surface-1 p-4 shadow-[0_1px_2px_rgba(0,0,0,0.4),0_2px_6px_rgba(0,0,0,0.3)]">
+  <div className="rounded-lg border border-border bg-surface-1 p-4 shadow-card">
     <h2 className="text-ink mb-4 text-sm font-bold tracking-tight text-balance">
       Thông tin đơn hàng
     </h2>
@@ -323,7 +327,7 @@ const PaymentGuideCard: FC<{
   const settingsReady = !settingsLoading && !settingsError && settings;
 
   return (
-    <div className="rounded-lg border border-border bg-surface-1 p-4 shadow-[0_1px_2px_rgba(0,0,0,0.4),0_2px_6px_rgba(0,0,0,0.3)]">
+    <div className="rounded-lg border border-border bg-surface-1 p-4 shadow-card">
       <h2 className="text-ink mb-4 text-sm font-bold tracking-tight text-balance">
         Hướng dẫn chuyển khoản
       </h2>
@@ -342,7 +346,7 @@ const PaymentGuideCard: FC<{
 
       {settingsReady && settings && (
         <div className="flex flex-col items-center gap-4">
-          <div className="rounded-md border border-border bg-canvas p-3 shadow-[0_1px_2px_rgba(0,0,0,0.4),0_2px_6px_rgba(0,0,0,0.3)]">
+          <div className="rounded-md border border-border bg-canvas p-3 shadow-card">
             <img
               src={buildQrUrl(settings, order.amount, note)}
               alt="QR chuyển khoản"
@@ -444,7 +448,7 @@ const OrderSuccess: FC = () => {
   const hasInitialOrder = Boolean(state?.order);
 
   const { order, setOrder, orderLoading, error, setError } = useOrderData(
-    orderId ?? null,
+    trackingId,
     state?.order,
   );
   const {
@@ -462,7 +466,7 @@ const OrderSuccess: FC = () => {
 
   useOrderPolling(
     trackingId,
-    order?.status === 'completed',
+    order?.status === 'completed' || order?.status === 'cancelled',
     setOrder,
     setError,
   );

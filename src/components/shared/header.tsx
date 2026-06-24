@@ -24,7 +24,7 @@ const Header: FC = () => {
   const handleLogout = async () => {
     setMenuOpen(false);
     await logout();
-    navigate(routes.home);
+    navigate(routes.adminLogin);
   };
 
   return (

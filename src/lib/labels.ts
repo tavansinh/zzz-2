@@ -30,19 +30,19 @@ const statusHint: Record<OrderStatus, string> = {
 };
 
 const statusBadgeClass: Record<OrderStatus, string> = {
-  pending: 'border-warning/40 text-warning bg-warning/10',
-  paid: 'border-primary/40 text-primary bg-primary/10',
-  completed: 'border-success/40 text-success bg-success/10',
-  awaiting_stock: 'border-info/40 text-info bg-info/10',
-  cancelled: 'border-border text-ink-muted bg-ink-muted/10',
+  pending: 'border-warning/40 bg-warning/10 text-ink',
+  paid: 'border-primary/40 bg-primary/10 text-ink',
+  completed: 'border-success/40 bg-success/10 text-ink',
+  awaiting_stock: 'border-info/40 bg-info/10 text-ink',
+  cancelled: 'border-border bg-ink-muted/10 text-ink-muted',
 };
 
 const statusDotClass: Record<OrderStatus, string> = {
-  pending: 'bg-warning/10 text-warning',
-  paid: 'bg-primary/10 text-primary',
-  completed: 'bg-success/10 text-success',
-  awaiting_stock: 'bg-info/10 text-info',
-  cancelled: 'bg-ink-muted/10 text-ink-muted',
+  pending: 'bg-warning/15',
+  paid: 'bg-primary/15',
+  completed: 'bg-success/15',
+  awaiting_stock: 'bg-info/15',
+  cancelled: 'bg-ink-muted/15',
 };
 
 const accountStatusLabel: Record<AccountStatus, string> = {

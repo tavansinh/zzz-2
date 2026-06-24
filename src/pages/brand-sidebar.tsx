@@ -14,7 +14,7 @@ const features = [
 const BrandSidebar: FC = () => {
   return (
     <div className="hidden md:block">
-      <h1 className="text-primary mb-4 text-4xl font-bold tracking-tight text-balance md:text-5xl">
+      <h1 className="text-ink mb-4 text-4xl font-bold tracking-tight text-balance md:text-5xl">
         4K PREMIUM
       </h1>
       <p className="text-ink-muted mb-10 max-w-md text-sm leading-relaxed text-pretty">
