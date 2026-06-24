@@ -4,7 +4,7 @@ const corsHeaders = {
     'authorization, x-client-info, apikey, content-type',
 };
 
-export const supabaseUrl = 'https://rgksdszqcxrpnoqmgslt.supabase.co';
+export const supabaseUrl = 'https://dvboqognyealrtrqimun.supabase.co';
 
 export const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
