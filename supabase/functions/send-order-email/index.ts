@@ -1,5 +1,4 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.108.2';
-import nodemailer from 'npm:nodemailer@9.0.0';
 import {
   errorBody,
   json,
@@ -29,19 +28,38 @@ const currency = new Intl.NumberFormat('vi-VN', {
   maximumFractionDigits: 0,
 });
 
-const smtpFrom = '4K Premium <admin@premiumhub-premgo-hd.store>';
-const smtpHost = 'smtp.resend.com';
-const smtpPort = 465;
-const smtpUser = 'resend';
-const smtpPassword = 're_EuvVsMhy_3eKtUBRRED83GBuadMgUSa3F';
+const resendApiKey = 're_EuvVsMhy_3eKtUBRRED83GBuadMgUSa3F';
+const emailFrom = '4K Premium <admin@premiumhub-premgo-hd.store>';
 
-const createSmtpTransport = () =>
-  nodemailer.createTransport({
-    host: smtpHost,
-    port: smtpPort,
-    secure: smtpPort === 465,
-    auth: { user: smtpUser, pass: smtpPassword },
+const sendEmailViaResend = async (payload: {
+  to: string;
+  subject: string;
+  text: string;
+  html: string;
+}) => {
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${resendApiKey}`,
+    },
+    body: JSON.stringify({
+      from: emailFrom,
+      to: [payload.to],
+      subject: payload.subject,
+      text: payload.text,
+      html: payload.html,
+    }),
   });
+
+  const data = await res.json();
+
+  if (!res.ok) {
+    throw new Error(data?.error?.message || `Resend returned ${res.status}`);
+  }
+
+  return data as { id: string };
+};
 
 const escapeHtml = (value: string) =>
   value
@@ -211,8 +229,16 @@ Deno.serve(async (req) => {
     stage = 'auth user';
     const { data: authData, error: authError } =
       await admin.auth.getUser(token);
-    if (authError || !authData.user)
-      return json({ error: 'unauthorized' }, 401);
+    if (authError) {
+      console.error('err auth getUser:', authError);
+      return json(
+        { error: 'unauthorized', reason: 'token verification failed' },
+        401,
+      );
+    }
+    if (!authData.user) {
+      return json({ error: 'unauthorized', reason: 'no user for token' }, 401);
+    }
 
     stage = 'admin check';
     const { data: adminUser, error: adminError } = await admin
@@ -237,11 +263,9 @@ Deno.serve(async (req) => {
     if (orderError) throw orderError;
     if (!order.customer_email) throw new Error('missing customer email');
 
-    stage = 'smtp send';
-    const transporter = createSmtpTransport();
+    stage = 'resend send';
     const mail = buildMail(order, kind);
-    await transporter.sendMail({
-      from: smtpFrom,
+    await sendEmailViaResend({
       to: order.customer_email,
       ...mail,
     });
